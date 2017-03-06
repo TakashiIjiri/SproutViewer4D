@@ -1,0 +1,414 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+#include "verrsrc.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 (日本) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "#include ""verrsrc.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)\r\n"
+    "LANGUAGE 17, 1\r\n"
+    "#include ""res\\SproutViewer.rc2""  // Microsoft Visual C++ 以外で編集されたリソース\r\n"
+    "#include ""l.JPN\\afxres.rc""      // 標準コンポーネント\r\n"
+    "#include ""l.JPN\\afxprint.rc""    // 印刷/印刷プレビュー リソース\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\SproutViewer.ico"
+
+IDR_SproutViewerTYPE    ICON                    "res\\SproutViewerDoc.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP "ヘルプ(&H)"
+    BEGIN
+        MENUITEM "バージョン情報 SproutViewer(&A)...", ID_APP_ABOUT
+    END
+    POPUP "File"
+    BEGIN
+        MENUITEM "Load 4d ct (dcm)",            ID_FILE_LOAD4DCT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS
+BEGIN
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL
+    "P",            ID_FILE_PRINT,          VIRTKEY, CONTROL
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "バージョン情報 SproutViewer"
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
+    LTEXT           "SproutViewer, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2017",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+END
+
+IDD_DIALOG_SETFRAMESIZE DIALOGEX 0, 0, 181, 60
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Load Frames (読み込みフレーム)"
+FONT 11, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    LTEXT           "開始フレーム\nStart Idx",IDC_STATIC,7,11,40,15
+    EDITTEXT        IDC_EDIT_LDFRM_STARTI,57,10,40,14,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "",IDC_SPIN_LDFRM_STARTI,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,97,10,10,14
+    LTEXT           "最後フレーム\nEnd Idx",IDC_STATIC,6,34,40,15
+    EDITTEXT        IDC_EDIT_LDFRM_ENDI,57,33,40,14,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "",IDC_SPIN_LDFRM_ENDI,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,97,33,10,14
+    DEFPUSHBUTTON   "OK",IDOK,111,14,51,29
+END
+
+IDD_DIALOG_VISPARAM DIALOGEX 0, 0, 146, 221
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Vis Param"
+FONT 11, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    CONTROL         "",IDC_PC_TRANSFUNC1,"Static",SS_BLACKFRAME,3,60,140,51
+    CONTROL         "",IDC_SLIDER_TIMELINE,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,3,43,103,15
+    EDITTEXT        IDC_EDIT_TIMEI,108,44,36,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "time line",IDC_STATIC,6,34,34,8
+    LTEXT           "slice Num",IDC_STATIC,6,170,31,8
+    CONTROL         "",IDC_SLIDER_SLICE_NUM,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,39,168,103,15
+    CONTROL         "xy",IDC_CHECK_PLANE_XY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,199,19,10
+    CONTROL         "yz",IDC_CHECK_PLANE_YZ,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,199,19,10
+    CONTROL         "zx",IDC_CHECK_PLANE_ZX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,47,199,19,10
+    CONTROL         "white",IDC_CHECK_BK_WHITE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,76,199,27,10
+    CONTROL         "black",IDC_CHECK_BK_BLACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,106,199,27,10
+    CONTROL         "frame",IDC_CHECK_FRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,76,209,27,10
+    CONTROL         "volume",IDC_CHECK_VOLUME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,106,209,36,10
+    LTEXT           "alpha",IDC_STATIC,6,187,31,8
+    CONTROL         "",IDC_SLIDER_ALPHA,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,39,184,103,15
+    CONTROL         "",IDC_PC_TRANSFUNC2,"Static",SS_BLACKFRAME,3,115,140,51
+    LTEXT           "winLv",IDC_STATIC,7,14,20,8
+    LTEXT           "min",IDC_STATIC,28,7,13,8
+    LTEXT           "max",IDC_STATIC,28,19,13,8
+    CONTROL         "",IDC_SLIDER_WINLV_MIN,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,41,7,69,10
+    EDITTEXT        IDC_EDIT_WINLV_MIN,109,5,30,12,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "",IDC_SLIDER_WINLV_MAX,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,41,20,69,10
+    EDITTEXT        IDC_EDIT_WINLV_MAX,108,18,30,12,ES_AUTOHSCROLL | ES_READONLY
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041104B0"
+        BEGIN
+            VALUE "CompanyName", "TODO: <会社名>"
+            VALUE "FileDescription", "SproutViewer"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "SproutViewer.exe"
+            VALUE "LegalCopyright", "TODO: (C) <会社名>.  All rights reserved."
+            VALUE "OriginalFilename", "SproutViewer.exe"
+            VALUE "ProductName", "TODO: <製品名>"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x411, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_DIALOG_SETFRAMESIZE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 174
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 53
+    END
+
+    IDD_DIALOG_VISPARAM, DIALOG
+    BEGIN
+        HORZGUIDE, 130
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_DIALOG_SETFRAMESIZE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DIALOG_VISPARAM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDP_OLE_INIT_FAILED     "OLE の初期化に失敗しました。OLE ライブラリのバージョンが正しいことを確認してください。"
+END
+
+STRINGTABLE
+BEGIN
+    IDR_MAINFRAME           "SproutViewer\n\nSproutViewer\n\n\nSproutViewer.Document\nSproutViewer.Document"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_APP_TITLE       "SproutViewer"
+    AFX_IDS_IDLEMESSAGE     "準備完了"
+END
+
+STRINGTABLE
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_NEW             "新規にファイルを作成\n新規ファイル"
+    ID_FILE_OPEN            "既存のファイルを開く\n開く"
+    ID_FILE_CLOSE           "作業中のファイルを閉じる\n閉じる"
+    ID_FILE_SAVE            "作業中のファイルを上書きして保存\n保存"
+    ID_FILE_SAVE_AS         "作業中のファイルを新しい名前で保存\n名前をつけて保存"
+    ID_FILE_PAGE_SETUP      "印刷オプションの変更\nページ レイアウトの設定"
+    ID_FILE_PRINT_SETUP     "プリンターおよび印刷オプションの変更\n印刷設定"
+    ID_FILE_PRINT           "作業中のファイルを印刷\n印刷"
+    ID_FILE_PRINT_DIRECT    "作業中のドキュメントを現在のオプションで印刷\nクイック印刷"
+    ID_FILE_PRINT_PREVIEW   "印刷イメージを表示\n印刷プレビュー"
+END
+
+STRINGTABLE
+BEGIN
+    ID_APP_ABOUT            "プログラム情報、バージョン、著作権を表示します。\nバージョン情報"
+    ID_APP_EXIT             "アプリケーションを終了し、ファイルの保存を指示\n終了"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_MRU_FILE1       "指定のファイルを開く"
+    ID_FILE_MRU_FILE2       "指定のファイルを開く"
+    ID_FILE_MRU_FILE3       "指定のファイルを開く"
+    ID_FILE_MRU_FILE4       "指定のファイルを開く"
+    ID_FILE_MRU_FILE5       "指定のファイルを開く"
+    ID_FILE_MRU_FILE6       "指定のファイルを開く"
+    ID_FILE_MRU_FILE7       "指定のファイルを開く"
+    ID_FILE_MRU_FILE8       "指定のファイルを開く"
+    ID_FILE_MRU_FILE9       "指定のファイルを開く"
+    ID_FILE_MRU_FILE10      "指定のファイルを開く"
+    ID_FILE_MRU_FILE11      "指定のファイルを開く"
+    ID_FILE_MRU_FILE12      "指定のファイルを開く"
+    ID_FILE_MRU_FILE13      "指定のファイルを開く"
+    ID_FILE_MRU_FILE14      "指定のファイルを開く"
+    ID_FILE_MRU_FILE15      "指定のファイルを開く"
+    ID_FILE_MRU_FILE16      "指定のファイルを開く"
+END
+
+STRINGTABLE
+BEGIN
+    ID_NEXT_PANE            "次のウィンドウに切り替える\n次のペイン"
+    ID_PREV_PANE            "前のウィンドウに切り替える\n前のペイン"
+END
+
+STRINGTABLE
+BEGIN
+    ID_WINDOW_SPLIT         "作業中のウィンドウを分割\n分割"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_CLEAR           "選択範囲を消去\n消去"
+    ID_EDIT_CLEAR_ALL       "すべて消去\nすべて消去"
+    ID_EDIT_COPY            "選択範囲をコピーしてクリップボードに保存\nコピー"
+    ID_EDIT_CUT             "選択範囲を切り取ってクリップボードに保存\n切り取り"
+    ID_EDIT_FIND            "指定した文字列の検索\n検索"
+    ID_EDIT_PASTE           "クリップボードの内容を貼り付け\n貼り付け"
+    ID_EDIT_REPEAT          "直前に行った動作を繰り返す\n繰り返し"
+    ID_EDIT_REPLACE         "指定した文字列を他の文字列で置換\n置換"
+    ID_EDIT_SELECT_ALL      "ファイル内のすべてを選択\nすべて選択"
+    ID_EDIT_UNDO            "直前に行った動作を元に戻す\n元に戻す"
+    ID_EDIT_REDO            "取り消した操作をやり直す\nやり直す"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_STATUS_BAR      "ステータス バーの表示/非表示\nステータス バーの表示切り替え"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCSIZE          "ウィンドウのサイズを変更"
+    AFX_IDS_SCMOVE          "ウィンドウの位置を変更"
+    AFX_IDS_SCMINIMIZE      "ウィンドウを最小化する"
+    AFX_IDS_SCMAXIMIZE      "ウィンドウを最大化する"
+    AFX_IDS_SCNEXTWINDOW    "次のウィンドウに切り替える"
+    AFX_IDS_SCPREVWINDOW    "前のウィンドウに切り替える"
+    AFX_IDS_SCCLOSE         "作業中のウィンドウを閉じ、変更したファイルの保存を指示"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCRESTORE       "ウィンドウを通常のサイズに戻す"
+    AFX_IDS_SCTASKLIST      "タスク一覧をアクティブにする"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_PREVIEW_CLOSE   "印刷プレビュー モードの終わり\nプレビューのキャンセル"
+END
+
+#endif    // 日本語 (日本) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE 17, 1
+#include "res\SproutViewer.rc2"  // Microsoft Visual C++ 以外で編集されたリソース
+#include "l.JPN\afxres.rc"      // 標準コンポーネント
+#include "l.JPN\afxprint.rc"    // 印刷/印刷プレビュー リソース
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
