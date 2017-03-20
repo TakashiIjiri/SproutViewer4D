@@ -270,7 +270,6 @@ void ImageManager::load4DCT(CString topDirPath)
 
 
 void ImageManager::fitRotation() {
-
 	const int N = m_img4D.size();
 
 	int Width = m_img4D[0]->W;
@@ -284,7 +283,7 @@ void ImageManager::fitRotation() {
 	const double degreeRange = 20;
 
 	double x, y, xx;
-	double rad, min, minRad;
+	double rad, min, minRad, minDeg;
 	unsigned int sum;
 	int dif;
 
@@ -296,20 +295,20 @@ void ImageManager::fitRotation() {
 
 		fprintf(stderr, "frame[%d]: start ", frame);
 		
-		for (double degree = -degreeRange / 2; degree <= degreeRange / 2; degree += 0.01) {
+		for (double degree = -degreeRange / 2; degree <= degreeRange / 2; degree += 0.1) {
 			rad = degree * convert;
-			sum = 0;				
-			for (int h = 0; h < Height; h++)
-				for (int w = 0; w < Width; w++) {
+			sum = 0;
+			for (int h = 100; h < Height - 100; h++)
+				for (int w = 100; w < Width - 100; w++) {
 
-					turn_mat[0][0] =   turn_mat[1][1] = cos(rad);
+					turn_mat[0][0] = turn_mat[1][1] = cos(rad);
 					turn_mat[1][0] = -(turn_mat[0][1] = sin(rad));
-					
+
 					x = w - center[0];
 					y = h - center[1];
 
 					xx = turn_mat[0][0] * x + turn_mat[0][1] * y + center[0];
-					y  = turn_mat[1][0] * x + turn_mat[1][1] * y + center[0];
+					y = turn_mat[1][0] * x + turn_mat[1][1] * y + center[0];
 
 					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
 						dif = m_img4D[0]->img[w + h*Width + slice*Width*Height] - m_img4D[frame]->img[(int)(xx)+(int)(y)*Width + slice*Width*Height];
@@ -318,14 +317,37 @@ void ImageManager::fitRotation() {
 				}
 			if (degree == -degreeRange / 2 || sum < min) {
 				min = sum;
+				minDeg = degree;
+			}
+		}
+		for (double degree = minDeg - 0.1; degree < minDeg + 0.1; degree += 0.001) {
+			rad = degree * convert;
+			sum = 0;
+			for (int h = 100; h < Height - 100; h++)
+				for (int w = 100; w < Width - 100; w++) {
+
+					turn_mat[0][0] = turn_mat[1][1] = cos(rad);
+					turn_mat[1][0] = -(turn_mat[0][1] = sin(rad));
+
+					x = w - center[0];
+					y = h - center[1];
+
+					xx = turn_mat[0][0] * x + turn_mat[0][1] * y + center[0];
+					y = turn_mat[1][0] * x + turn_mat[1][1] * y + center[0];
+
+
+					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
+						dif = m_img4D[0]->img[w + h*Width + slice*Width*Height] - m_img4D[frame]->img[(int)(xx)+(int)(y)*Width + slice*Width*Height];
+						sum += sqrt(pow(dif, 2));
+					}
+				}
+
+			if (degree == minDeg - 0.1 || sum < min) {
+				min = sum;
 				minRad = rad;
 			}
 		}
-		
-		fprintf(stderr, "-> angle determined ");
-
-
-
+		fprintf(stderr, "-> determined angle ");
 
 		short* turn_img = new short[Width*Height*Depth];
 		short imgs[4] = { 0 };
@@ -334,6 +356,7 @@ void ImageManager::fitRotation() {
 
 		turn_mat[0][0] = turn_mat[1][1] = cos(minRad);
 		turn_mat[1][0] = -(turn_mat[0][1] = sin(minRad));
+
 
 		for (int d = 0; d < Depth; d++)
 			for (int h = 0; h < Height; h++)
@@ -347,27 +370,27 @@ void ImageManager::fitRotation() {
 					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
 
 						if (xx < Width - 1 && y < Height - 1) {
-							imgs[0] = m_img4D[frame]->img[(int)xx +     (int)y      *Width + d*Width*Height];
-							imgs[1] = m_img4D[frame]->img[(int)xx + 1 + (int)y      *Width + d*Width*Height];
-							imgs[2] = m_img4D[frame]->img[(int)xx +     (int)(y + 1)*Width + d*Width*Height];
-							imgs[3] = m_img4D[frame]->img[(int)xx + 1 + (int)(y + 1)*Width + d*Width*Height];
 
-							turn_img[w + h*Width + d*Width*Height] =
+							imgs[0] = turn_img[(int)xx + (int)y      *Width + d*Width*Height];
+							imgs[1] = turn_img[(int)xx + 1 + (int)y      *Width + d*Width*Height];
+							imgs[2] = turn_img[(int)xx + (int)(y + 1)*Width + d*Width*Height];
+							imgs[3] = turn_img[(int)xx + 1 + (int)(y + 1)*Width + d*Width*Height];
+
+							m_img4D[frame]->img[w + h*Width + d*Width*Height] =
 								(1 - (xx - (int)xx))*(1 - (y - (int)y))*imgs[0] +
-								(xx - (int)xx)      *(1 - (y - (int)y))*imgs[1] +
-								(1 - (xx - (int)xx))*(y - (int)y)	   *imgs[2] +
-								(xx - (int)xx)      *(y - (int)y)	   *imgs[3];
+								(xx - (int)xx) *(1 - (y - (int)y))*imgs[1] +
+								(1 - (xx - (int)xx))*(y - (int)y) *imgs[2] +
+								(xx - (int)xx) *(y - (int)y)	*imgs[3];
 
 						}
 						else {
-							turn_img[w + h*Width + d*Width*Height] = m_img4D[frame]->img[(int)(xx)+(int)(y)*Width + d*Width*Height];
+							m_img4D[frame]->img[w + h*Width + d*Width*Height] = turn_img[(int)(xx)+(int)(y)*Width + d*Width*Height];
 						}
 					}
 				}
 
-		memcpy(m_img4D[frame]->img, turn_img, sizeof(short)*Width*Height*Depth);
 		fprintf(stderr, "-> finish\n");
-
+		delete[] turn_img;
 	}
 
 }
