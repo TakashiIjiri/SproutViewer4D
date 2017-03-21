@@ -134,6 +134,8 @@ public:
 
 	void load4DCT(CString topDir);
 
+	void fitRotation();
+
 	void UpdateWindowLevel(float minV, float maxV);
 	void updateVisVolume( int winLvMin, int winLvMax, int time );
 	void updateHistogram();
