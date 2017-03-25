@@ -22,6 +22,16 @@ TCore::TCore() :
 {
 	m_bL = m_bR = m_bM = false;
 
+	/*
+	EMat2d M;
+	M << 1,2,3,4;
+	EVec2d a(1,2);
+
+	EVec2d b = M*a;
+	fprintf( stderr, "aaaaaaaaaaaaaaaaaaaa %f %f\n\n\n\n", b[0], b[1]);
+	*/
+
+
 }
 
 

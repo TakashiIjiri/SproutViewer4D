@@ -134,7 +134,6 @@ public:
 
 	void load4DCT(CString topDir);
 
-	void fitRotation();
 
 	void UpdateWindowLevel(float minV, float maxV);
 	void updateVisVolume( int winLvMin, int winLvMax, int time );
@@ -146,6 +145,11 @@ public:
 	EVec3f getCuboidF(){return EVec3f( (float)m_img4D[0]->px * m_img4D[0]->W, 
 		                               (float)m_img4D[0]->py * m_img4D[0]->H,
 		                               (float)m_img4D[0]->pz * m_img4D[0]->D);}
+
+
+private:
+	void fitRotation();
+
 
 };
 

@@ -22,6 +22,7 @@ typedef Eigen::Vector4d EVec4d;
 typedef Eigen::Vector4f EVec4f;
 
 
+typedef Eigen::Matrix2d EMat2d;
 typedef Eigen::Matrix3f EMat3f;
 typedef Eigen::Matrix4f EMat4f;
 typedef Eigen::Matrix3d EMat3d;

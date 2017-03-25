@@ -73,7 +73,7 @@ void t_get4DFilePaths( CString topDirPath, vector< vector<CString> > &fNames )
 			bContinue = cFind.FindNextFile();
 			fNames[i].push_back( cFind.GetFilePath() );
 		}
-		fprintf( stderr,"%s  -- %d %d\n" , path, i, (int)fNames[i].size());
+		fprintf( stderr,"%s  -- %d %d\n" , path.GetString(), i, (int)fNames[i].size());
 	}
 
 }
@@ -119,7 +119,7 @@ bool t_open4DImg( const vector< vector<CString> > &fNames, vector< TVolumeInt16*
 
             if( !tdcmtk.getPixelsAs<short>( &img4D.back()->img[ i*W*H ] ) )
 			{
-                fprintf(stderr, "error = %s \n", fNames[idx][i] );
+                fprintf(stderr, "error = %s \n", fNames[idx][i].GetString() );
             }
         }
 
@@ -269,129 +269,151 @@ void ImageManager::load4DCT(CString topDirPath)
 
 
 
-void ImageManager::fitRotation() {
-	const int N = m_img4D.size();
-
-	int Width = m_img4D[0]->W;
-	int Height = m_img4D[0]->H;
-	int Depth = m_img4D[0]->D;
-
-	double center[2] = { (Width - 1)*0.5 , (Height - 1)*0.5 };
-
-	const int slice = 100;
-	const double convert = 3.141592653589793 / 180;
-	const double degreeRange = 20;
-
-	double x, y, xx;
-	double rad, min, minRad, minDeg;
-	unsigned int sum;
-	int dif;
-
-	double turn_mat[2][2] = { 0 };
 
 
-	fprintf(stderr, "Turn start\n");
-	for (int frame = 1; frame < N; frame++) {
 
-		fprintf(stderr, "frame[%d]: start ", frame);
-		
-		for (double degree = -degreeRange / 2; degree <= degreeRange / 2; degree += 0.1) {
-			rad = degree * convert;
-			sum = 0;
-			for (int h = 100; h < Height - 100; h++)
-				for (int w = 100; w < Width - 100; w++) {
 
-					turn_mat[0][0] = turn_mat[1][1] = cos(rad);
-					turn_mat[1][0] = -(turn_mat[0][1] = sin(rad));
 
-					x = w - center[0];
-					y = h - center[1];
+//      0     1     2     3     4
+//   |-----|-----|-----|-----|-----|     N=5, pitch = 0.1
+//   0    0.1   0.2   0.3   0.4   0.5
 
-					xx = turn_mat[0][0] * x + turn_mat[0][1] * y + center[0];
-					y = turn_mat[1][0] * x + turn_mat[1][1] * y + center[0];
 
-					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
-						dif = m_img4D[0]->img[w + h*Width + slice*Width*Height] - m_img4D[frame]->img[(int)(xx)+(int)(y)*Width + slice*Width*Height];
-						sum += sqrt(pow(dif, 2));
-					}
+// !!!!!!!!!note!!!!!!!!!!!!!! 
+// pix index (int) --> 2d space (double) 
+// (u,v) --> ( (u+0.5)* pitchX, (v+0.5)*pitchY )
+
+// 2D space (double) --> pix index
+// (x,y) --> ((int)( x / pitchX ), (int)( y / pitchY ))
+
+static double t_findRotAngle(
+	const int    W , // resolution 
+	const int    H , // resolution 
+	const double px, // pitch in W dir
+	const double py, // pitch in H dir
+	const double thetaPiv  , //consider theta in [piv-range, piv+range]
+	const double thetaRange,
+	const double thetaStep , 
+	const short  *img1,
+	const short  *img2
+	)
+{
+	const EVec2d pixCenter( (double)W / 2.0 * px, (double)H / 2.0 * py) ; 
+
+	double foundTheta = 0;
+	double minDeg = DBL_MAX;
+
+	for (double t = thetaPiv - thetaRange; t <= thetaPiv + thetaRange; t += thetaStep) 
+	{
+		double theta = t * M_PI / 180.0;
+		EMat2d M;
+		M <<  cos(theta), -sin(theta), 
+			  sin(theta),  cos(theta);
+
+		double sum = 0;
+		for (int y = 100; y < H - 100; ++y)
+		{
+			for (int x = 100; x < W - 100; ++x) 
+			{
+				EVec2d p( (x+0.5) * px, (y+0.5)*py  ) ; 
+				EVec2d pixPos = M*(p - pixCenter) + pixCenter;
+
+				int xx = (int)( pixPos[0] / px );
+				int yy = (int)( pixPos[1] / py );
+
+				if (0 <= xx && xx < W && 0 <= yy && yy < H ) 
+				{
+					sum += (img1[x + y * W] - img2[ xx + yy * W ]) * (img1[x + y * W] - img2[ xx + yy * W ]);
 				}
-			if (degree == -degreeRange / 2 || sum < min) {
-				min = sum;
-				minDeg = degree;
 			}
 		}
-		for (double degree = minDeg - 0.1; degree < minDeg + 0.1; degree += 0.001) {
-			rad = degree * convert;
-			sum = 0;
-			for (int h = 100; h < Height - 100; h++)
-				for (int w = 100; w < Width - 100; w++) {
 
-					turn_mat[0][0] = turn_mat[1][1] = cos(rad);
-					turn_mat[1][0] = -(turn_mat[0][1] = sin(rad));
-
-					x = w - center[0];
-					y = h - center[1];
-
-					xx = turn_mat[0][0] * x + turn_mat[0][1] * y + center[0];
-					y = turn_mat[1][0] * x + turn_mat[1][1] * y + center[0];
+		if (sum < minDeg) 
+		{
+			minDeg = sum;
+			foundTheta = theta;
+		}
+	}	
+	return foundTheta * 180 / M_PI;
+}
 
 
-					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
-						dif = m_img4D[0]->img[w + h*Width + slice*Width*Height] - m_img4D[frame]->img[(int)(xx)+(int)(y)*Width + slice*Width*Height];
-						sum += sqrt(pow(dif, 2));
-					}
-				}
 
-			if (degree == minDeg - 0.1 || sum < min) {
-				min = sum;
-				minRad = rad;
+
+
+
+
+
+// implemented by Tomofumi, modified by takashi (20170325)
+void ImageManager::fitRotation() 
+{
+
+	fprintf( stderr, "fitRotation-----------------------\n");
+	if( m_img4D.size() == 0 ) return;
+
+	//画像の解像度とpitch(画素の大きさ)
+	const int    W   = m_img4D[0]->W;
+	const int    H   = m_img4D[0]->H;
+	const int    D   = m_img4D[0]->D;
+	const double px  = m_img4D[0]->px;
+	const double py  = m_img4D[0]->py;
+	const int SLICE_I = 100;
+
+	//現在の回転角度，エラーが積み重なる可能性があるので、逐次更新する．
+	double fitAngle = 0;
+
+
+	for (int frame = 1; frame < m_img4D.size(); frame++) 
+	{
+		//search best fitting angle 
+		double tmp1 = t_findRotAngle(W,H,px,py, fitAngle, 10 , 0.1  , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H] );
+		fitAngle    = t_findRotAngle(W,H,px,py, tmp1    , 0.1, 0.001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H] );
+
+		// rotate image		
+		const EVec2d center( (double)W / 2.0 * px, (double)H / 2.0 * py) ; 
+		const double theta = fitAngle * M_PI / 180.0;
+		EMat2d M;
+		M << cos(theta), -sin(theta), 
+			 sin(theta),  cos(theta);
+
+		short* tmpImg = new short[W*H*D];
+		memcpy(tmpImg, m_img4D[frame]->img, sizeof(short)*W*H*D);
+
+		for (int z = 0; z < D; z++)
+		for (int y = 0; y < H; y++)
+		for (int x = 0; x < W; x++)
+		{
+			EVec2d p( (x+0.5)*px, (y+0.5)*py );
+			EVec2d pos = M * (p - center) + center;
+
+			const int xi = (int) (pos[0] / px);
+			const int yi = (int) (pos[0] / px);
+
+			if ( 0<= xi && xi < W && 0 <= yi  && yi < H) 
+			{
+				m_img4D[frame]->img[z*W*H + y*W + x] = tmpImg[z*W*H + yi*W + xi];
+
+				//todo linear interpolation
+				
+							//imgs[0] = turn_img[(int)xx + (int)y      *Width + d*Width*Height];
+							//imgs[1] = turn_img[(int)xx + 1 + (int)y      *Width + d*Width*Height];
+							//imgs[2] = turn_img[(int)xx + (int)(y + 1)*Width + d*Width*Height];
+							//imgs[3] = turn_img[(int)xx + 1 + (int)(y + 1)*Width + d*Width*Height];
+
+							//m_img4D[frame]->img[w + h*Width + d*Width*Height] =
+							//	(1 - (xx - (int)xx))*(1 - (y - (int)y))*imgs[0] +
+							//	(xx - (int)xx) *(1 - (y - (int)y))*imgs[1] +
+							//	(1 - (xx - (int)xx))*(y - (int)y) *imgs[2] +
+							//	(xx - (int)xx) *(y - (int)y)	*imgs[3];
 			}
 		}
-		fprintf(stderr, "-> determined angle ");
 
-		short* turn_img = new short[Width*Height*Depth];
-		short imgs[4] = { 0 };
-
-		memcpy(turn_img, m_img4D[frame]->img, sizeof(short)*Width*Height*Depth);
-
-		turn_mat[0][0] = turn_mat[1][1] = cos(minRad);
-		turn_mat[1][0] = -(turn_mat[0][1] = sin(minRad));
-
-
-		for (int d = 0; d < Depth; d++)
-			for (int h = 0; h < Height; h++)
-				for (int w = 0; w < Width; w++) {
-					x = w - center[0];
-					y = h - center[1];
-
-					xx = turn_mat[0][0] * x + turn_mat[0][1] * y + center[0];
-					y = turn_mat[1][0] * x + turn_mat[1][1] * y + center[1];
-
-					if (xx >= 0 && xx < Width && y >= 0 && y < Height) {
-
-						if (xx < Width - 1 && y < Height - 1) {
-
-							imgs[0] = turn_img[(int)xx + (int)y      *Width + d*Width*Height];
-							imgs[1] = turn_img[(int)xx + 1 + (int)y      *Width + d*Width*Height];
-							imgs[2] = turn_img[(int)xx + (int)(y + 1)*Width + d*Width*Height];
-							imgs[3] = turn_img[(int)xx + 1 + (int)(y + 1)*Width + d*Width*Height];
-
-							m_img4D[frame]->img[w + h*Width + d*Width*Height] =
-								(1 - (xx - (int)xx))*(1 - (y - (int)y))*imgs[0] +
-								(xx - (int)xx) *(1 - (y - (int)y))*imgs[1] +
-								(1 - (xx - (int)xx))*(y - (int)y) *imgs[2] +
-								(xx - (int)xx) *(y - (int)y)	*imgs[3];
-
-						}
-						else {
-							m_img4D[frame]->img[w + h*Width + d*Width*Height] = turn_img[(int)(xx)+(int)(y)*Width + d*Width*Height];
-						}
-					}
-				}
-
-		fprintf(stderr, "-> finish\n");
-		delete[] turn_img;
+		delete[] tmpImg;
 	}
+
+
+
+
 
 }
 
