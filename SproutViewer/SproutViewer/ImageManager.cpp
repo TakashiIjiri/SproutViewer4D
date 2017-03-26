@@ -91,7 +91,7 @@ bool t_open4DImg( const vector< vector<CString> > &fNames, vector< TVolumeInt16*
 	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI >= endI ) exit(0);
 
 
-    for( int idx = startI; idx < endI; ++idx )
+    for( int idx = startI; idx <= endI; ++idx )
     {
         fprintf(stderr, "load %d/%d   %d...", idx, frameN, (int)fNames[idx].size() );
 
@@ -214,7 +214,7 @@ void ImageManager::load4DCT(CString topDirPath)
 		vector< vector<CString> > fNames;
 		t_get4DFilePaths( topDirPath, fNames );
 		t_open4DImg( fNames, m_img4D    );
-		fitRotation();
+		//fitRotation();
 	}
 	
 
@@ -386,25 +386,21 @@ void ImageManager::fitRotation()
 			EVec2d p( (x+0.5)*px, (y+0.5)*py );
 			EVec2d pos = M * (p - center) + center;
 
-			const int xi = (int) (pos[0] / px);
-			const int yi = (int) (pos[0] / px);
+			const double xx = (pos[0] / px);
+			const double yy = (pos[1] / py);
+			const int    xi = (int) (xx - 0.5);
+			const int    yi = (int) (yy - 0.5);
+			const double tx = xx - xi;
+			const double ty = yy - yi;
+			const int     I = z*W*H + yi*W + xi;
 
-			if ( 0<= xi && xi < W && 0 <= yi  && yi < H) 
+			if ( 0<= xi && xi < W-1 && 0 <= yi  && yi < H-1) 
 			{
-				m_img4D[frame]->img[z*W*H + y*W + x] = tmpImg[z*W*H + yi*W + xi];
+				//m_img4D[frame]->img[z*W*H + y*W + x] = tmpImg[I];
 
-				//todo linear interpolation
-				
-							//imgs[0] = turn_img[(int)xx + (int)y      *Width + d*Width*Height];
-							//imgs[1] = turn_img[(int)xx + 1 + (int)y      *Width + d*Width*Height];
-							//imgs[2] = turn_img[(int)xx + (int)(y + 1)*Width + d*Width*Height];
-							//imgs[3] = turn_img[(int)xx + 1 + (int)(y + 1)*Width + d*Width*Height];
-
-							//m_img4D[frame]->img[w + h*Width + d*Width*Height] =
-							//	(1 - (xx - (int)xx))*(1 - (y - (int)y))*imgs[0] +
-							//	(xx - (int)xx) *(1 - (y - (int)y))*imgs[1] +
-							//	(1 - (xx - (int)xx))*(y - (int)y) *imgs[2] +
-							//	(xx - (int)xx) *(y - (int)y)	*imgs[3];
+				m_img4D[frame]->img[z*W*H + y*W + x] = 
+					(1-ty) * ( (1-tx) * tmpImg[I  ] + tx * tmpImg[I+1  ] ) + 
+					ty     * ( (1-tx) * tmpImg[I+W] + tx * tmpImg[I+1+W] ) ;
 			}
 		}
 
