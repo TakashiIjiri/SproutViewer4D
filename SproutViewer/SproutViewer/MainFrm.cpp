@@ -33,6 +33,8 @@ IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_CREATE()
 	ON_COMMAND(ID_FILE_LOAD4DCT, &CMainFrame::OnFileLoad4dct)
+	ON_COMMAND(ID_FILE_LOAD4DCT_TRAW, &CMainFrame::OnFileLoad4dctTraw)
+	ON_COMMAND(ID_FILE_LOADMASK, &CMainFrame::OnFileLoadmask)
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -101,5 +103,23 @@ void CMainFrame::Dump(CDumpContext& dc) const
 void CMainFrame::OnFileLoad4dct()
 {
 
-	CSproutViewerView::getInst()->load4dct();
+	CSproutViewerView::getInst()->load4dct(0);
 }
+
+
+void CMainFrame::OnFileLoad4dctTraw()
+{
+	CSproutViewerView::getInst()->load4dct(1);
+}
+
+
+void CMainFrame::OnFileLoadmask()
+{
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY, "mask data (*.msk)|*.msk||");
+	if (dlg.DoModal() != IDOK) return;
+
+	ImageManager::getInst()->loadMaskAtInitFrame(dlg.GetPathName());
+}
+
+
+

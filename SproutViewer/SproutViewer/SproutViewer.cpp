@@ -172,6 +172,7 @@ protected:
 // 実装
 protected:
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -194,6 +195,5 @@ void CSproutViewerApp::OnAppAbout()
 }
 
 // CSproutViewerApp メッセージ ハンドラー
-
 
 

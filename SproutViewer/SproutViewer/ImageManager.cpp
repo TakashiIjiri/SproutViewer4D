@@ -23,7 +23,7 @@ ImageManager::ImageManager()
 	m_dlg.ShowWindow( SW_SHOW );
 
 	fprintf( stderr, "constructure ImageManager-----\n" );
-	load4DCT("");
+	load4DCT("", 0);
 	fprintf( stderr, "constructure ImageManager-----DONE\n" );
 
 }
@@ -139,6 +139,72 @@ bool t_open4DImg( const vector< vector<CString> > &fNames, vector< TVolumeInt16*
 
 
 
+void t_get4DFilePaths_traw3d( CString topDirPath, vector<CString> &fNames )
+{
+
+	CString path = topDirPath;
+	if( path.Right(1) != "\\") path += "\\";
+	path += "*.traw3d_ss";
+
+	CFileFind cFind;
+	BOOL bContinue = cFind.FindFile( path );
+
+	while(bContinue)
+	{
+		bContinue = cFind.FindNextFile();
+		fNames.push_back( cFind.GetFilePath() );
+	}
+
+	fprintf( stderr,"%s  -- %d\n" , path.GetString(), (int)fNames.size());
+}
+
+
+
+bool t_open4DImg_traw3d( const vector<CString> &fNames, vector<TVolumeInt16*> &img4D )
+{
+    const int frameN = (int)fNames.size();
+	int startI, endI;
+
+	DlgLoadFrameIdx dlg;
+	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI >= endI ) exit(0);
+
+
+    for( int idx = startI; idx <= endI; ++idx )
+    {
+        fprintf(stderr, "load %d/%d...", idx, frameN );
+
+		CString fname = fNames[idx];
+
+		FILE *fp = fopen( fname, "rb" );
+		if( fp == 0 ) continue;
+
+		int  W, H, D; // resoulution (Width, Height, Depth)
+		fread( &W , sizeof(int   ), 1, fp ); 
+		fread( &H , sizeof(int   ), 1, fp ); 
+		fread( &D , sizeof(int   ), 1, fp );
+        img4D.push_back( new TVolumeInt16(W, H, D) );		
+
+		fread( &img4D.back()->px, sizeof(double), 1, fp ); 
+		fread( &img4D.back()->py, sizeof(double), 1, fp ); 
+		fread( &img4D.back()->pz, sizeof(double), 1, fp );
+
+		if( fread( img4D.back()->img, sizeof(short), W*H*D, fp ) != W*H*D ) 
+		{ 
+			fclose( fp ); 
+			delete img4D.back();
+			img4D.pop_back();
+		}
+
+		fclose(fp);
+	}
+	return true;
+}
+
+
+
+
+
+
 
 
 
@@ -191,12 +257,15 @@ static bool t_LoadDefoultVolume
 
 
 
-void ImageManager::load4DCT(CString topDirPath)
+void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 {
 
 	//clear 4d ct volume 
-	for( int i=0; i < m_img4D.size(); ++i) delete m_img4D[i];
-	m_img4D.clear();
+	for( int i=0; i < m_img4D .size(); ++i) delete m_img4D [i];
+	for( int i=0; i < m_mask4D.size(); ++i) delete m_mask4D[i];
+	m_img4D .clear();
+	m_mask4D.clear();
+	m_surf4D.clear();
 
 
 	//load 4d ct
@@ -209,14 +278,19 @@ void ImageManager::load4DCT(CString topDirPath)
 			m_img4D.push_back( img );
 		}
 	}
-	else
+	else if( flg_DCMs_or_traw == 0)
 	{
 		vector< vector<CString> > fNames;
 		t_get4DFilePaths( topDirPath, fNames );
 		t_open4DImg( fNames, m_img4D    );
 		fitRotation();
 	}
-	
+	else if( flg_DCMs_or_traw == 1)
+	{
+		vector<CString> fNames;
+		t_get4DFilePaths_traw3d( topDirPath, fNames );
+		t_open4DImg_traw3d( fNames, m_img4D );
+	}
 
 	if( m_img4D.size() == 0 || m_img4D[0]->W == 0 || m_img4D[0]->H == 0 || m_img4D[0]->D == 0 ) exit(0);
 
@@ -252,11 +326,29 @@ void ImageManager::load4DCT(CString topDirPath)
     m_vol.Allocate( W, H, D );
     m_vol.SetValue( m_img4D[0]->img, (short) m_winLv[0], (short) m_winLv[1]);
 
+	for( int i=0; i< (int) m_img4D.size(); ++i) m_mask4D.push_back( new byte[W*H*D] );
+    m_volMask.Allocate( W, H, D );
+    m_volMask.SetValue( m_mask4D[0] );
+
+	for( int i=0; i< (int) m_img4D.size(); ++i) m_surf4D.push_back( TMesh() );
+	
+
+
 
 	m_imgPsu   .AllocateHeuImg(256);
 	m_imgMskCol.Allocate      (256);
     m_imgTf.Allocate(TRANS_FUNC_SIZE);
 	for (int i = 0; i < TRANS_FUNC_SIZE; ++i) m_imgTf[4 * i] = m_imgTf[4 * i + 1] = i;
+
+	m_imgMskCol[0] = m_imgMskCol[1] = m_imgMskCol[2] = m_imgMskCol[3] = 0;
+	for( int i=1; i < 256; ++i)
+	{
+		m_imgMskCol[4*i+0] = (i%7)*64; 
+		m_imgMskCol[4*i+1] = (i%2)*255; 
+		m_imgMskCol[4*i+2] = (i%5)*128; 
+		m_imgMskCol[4*i+3] = 255; 
+	}
+
 
 	//compute gradient(yet) and histogram 
 	//updateGradVolume();
@@ -266,6 +358,68 @@ void ImageManager::load4DCT(CString topDirPath)
 	m_dlg.New4DCTLoaded ( (int) m_img4D.size(), getReso(), getPitch(), m_winLv);
 	m_dlg.HistogramUpdated(HIST_BIN_SIZE, m_histVol, m_histGmag);
 }
+
+
+
+
+void ImageManager::loadMaskAtInitFrame(CString fname)
+{
+	FILE* fp = fopen(fname, "rb");
+	
+	//save mask image
+	int version, W,H,D;
+	fread(&version, sizeof(int), 1, fp);
+	fread(&W      , sizeof(int), 1, fp);
+	fread(&H      , sizeof(int), 1, fp);
+	fread(&D      , sizeof(int), 1, fp);
+
+	if(W != m_img4D[0]->W || H != m_img4D[0]->H || D != m_img4D[0]->D )
+	{
+		AfxMessageBox( "strange volume size\n");
+		fclose( fp );
+		return;
+	}
+
+	fread( m_mask4D[0], sizeof(byte), W * H * D, fp);
+
+	//m_volMsk.flipVolumeInZ();
+	m_volMask.SetValue(m_mask4D[0]);
+
+
+	int maskN;
+	fread(&maskN, sizeof(int), 1, fp);
+
+
+	for (int i=0; i < maskN; ++i)
+	{
+		int lock, nLen;
+		int col[3];
+		double alpha;
+		fread(&alpha, sizeof(double), 1, fp);
+		fread(col   , sizeof(int   ), 3, fp);
+		fread(&lock , sizeof(int   ), 1, fp);
+		fread(&nLen , sizeof(int   ), 1, fp);
+
+		char *name = new char[nLen + 1];
+		fread(name, sizeof(char), nLen + 1, fp);
+
+		fprintf(stderr, "%d %s\n", nLen, name);
+
+		m_imgMskCol[4*i+0] = col[0];
+		m_imgMskCol[4*i+1] = col[1];
+		m_imgMskCol[4*i+2] = col[2];
+		m_imgMskCol[4*i+3] = alpha;
+		//m_maskData.push_back( MaskData(string(name), EVec3i(col[0],col[1],col[2]), alpha, 0, lock?true:false) );
+
+		delete[] name; 
+	}
+	fclose(fp);
+}
+
+
+
+
+
 
 
 
@@ -470,15 +624,15 @@ void ImageManager::fitRotation()
 			{
 				//m_img4D[frame]->img[z*W*H + y*W + x] = tmpImg[I];
 
-				m_img4D[frame]->img[z*W*H + y*W + x] = 
-					(1-ty) * ( (1-tx) * tmpImg[I  ] + tx * tmpImg[I+1  ] ) + 
-					ty     * ( (1-tx) * tmpImg[I+W] + tx * tmpImg[I+1+W] ) ;
+				m_img4D[frame]->img[z*W*H + y*W + x] = (short)
+					( (1-ty) * ( (1-tx) * tmpImg[I  ] + tx * tmpImg[I+1  ] ) + 
+			   	      ty     * ( (1-tx) * tmpImg[I+W] + tx * tmpImg[I+1+W] ) );
 			}
 		}
 
 		delete[] tmpImg;
 		imageOutput(W, H, D, px, py, pz, m_img4D[frame]->img, "object" + to_string(frame));
-		fprintf(stderr, "%d / %d finish.\n", frame, m_img4D.size() - 1);
+		fprintf(stderr, "%d / %d finish.\n", frame, (int) m_img4D.size() - 1);
 
 	}
 
@@ -500,8 +654,8 @@ void ImageManager::UpdateWindowLevel(float minV, float maxV)
 void ImageManager::updateVisVolume( int winLvMin, int winLvMax, int time )
 {
     if( time < 0 || m_img4D.size() - 1 < time) return ;
-    m_vol.SetValue( m_img4D[ time ]->img, (short)winLvMin, (short)winLvMax );
-    m_vol.setUpdated();
+    m_vol    .SetValue( m_img4D[ time ]->img, (short)winLvMin, (short)winLvMax );
+	m_volMask.SetValue( m_mask4D[time] );
 }
 
 
@@ -533,3 +687,37 @@ void ImageManager::updateHistogram()
 }
 
 
+
+void ImageManager::updateMask()
+{
+	//‚±‚±‚ð¬“cŒN‚É”C‚¹‚éB
+	//m_mask4D[0]‚©‚çm_mask[i]‚ðŒvŽZ‚·‚é
+}
+
+void ImageManager::updateSurfFromMask()
+{
+	m_surf4D.clear();
+	
+	const int    W   = m_img4D[0]->W;
+	const int    H   = m_img4D[0]->H;
+	const int    D   = m_img4D[0]->D;
+	const int    WHD = W * H * D;
+	const double px  = m_img4D[0]->px;
+	const double py  = m_img4D[0]->py;
+	const double pz  = m_img4D[0]->pz;
+
+	byte *vol = new byte[ WHD ];
+
+
+	for (int i = 0; i < (int)m_img4D.size(); ++i)
+	{
+		//only for ID=1
+		for( int j = 0; j < WHD; ++j) vol[j] = m_mask4D[i][j] == 1 ? 255 : 0;
+
+		TMesh mesh;
+		t_MarchingCubes<byte>( EVec3i(W,H,D), EVec3f(px,py,pz), vol, 128, 0,0, mesh ) ;
+		m_surf4D.push_back(mesh);	
+	}
+
+	delete[] vol; 
+}

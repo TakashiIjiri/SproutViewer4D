@@ -36,7 +36,7 @@ public:
 
 // ëÄçÏ
 public:
-	void load4dct();
+	void load4dct(int flg_DCM_traw);
 	void initCameraPos(EVec3f &cuboid){ AfxMessageBox("to implement");}
 	static CSproutViewerView* getInst(){ return m_myself; }
 

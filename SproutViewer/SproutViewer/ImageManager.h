@@ -19,6 +19,8 @@ using namespace std;
 #include "COMMON\OglImage.h"
 #include "DlgVisParam.h"
 
+#include "COMMON\tmesh.h"
+#include "COMMON\tmarchingcubes.h"
 
 #define HIST_BIN_SIZE   256
 #define TRANS_FUNC_SIZE 256
@@ -113,12 +115,15 @@ public:
 	//vis param dlg
 	DlgVisParam m_dlg;
 
-	//loaded 4dct image 
-	vector< TVolumeInt16* > m_img4D  ;
+	//4DCT image & 4DCT mask
+	vector< TVolumeInt16* > m_img4D ;
+	vector< byte*         > m_mask4D;
+	vector< TMesh         > m_surf4D;
 
 	//a volume for sending GPU
-	EVec2i      m_winLv;
-	OglImage3D  m_vol  ;
+	EVec2i      m_winLv  ;
+	OglImage3D  m_vol    ;
+	OglImage3D  m_volMask;
 
 	//Transfer functions 
 	OglImage1D<CH_RGBA> m_imgTf    ;
@@ -132,13 +137,15 @@ public:
 
 
 
-	void load4DCT(CString topDir);
-
+	void load4DCT(CString topDir, int flg_DCMs_or_traw );
+	void loadMaskAtInitFrame(CString fname);
 
 	void UpdateWindowLevel(float minV, float maxV);
 	void updateVisVolume( int winLvMin, int winLvMax, int time );
 	void updateHistogram();
 	
+	void updateMask();
+	void updateSurfFromMask();
 
 	EVec3i getReso   (){return EVec3i( m_img4D[0]->W , m_img4D[0]->H , m_img4D[0]->D  ); }
 	EVec3f getPitch  (){return EVec3f( (float)m_img4D[0]->px, (float)m_img4D[0]->py, (float)m_img4D[0]->pz ); }

@@ -16,11 +16,9 @@
 
 class TCore
 {
-	GlslShaderVolume m_volumeShader;
-	GlslShaderCrsSec m_crssecShader;
-
+	GlslShaderVolume m_shaderVol, m_shaderVolMask;
+	GlslShaderCrsSec m_shaderCrs, m_shaderCrsMask;
 	bool m_bL, m_bR, m_bM;
-
 
 private:
 	TCore();

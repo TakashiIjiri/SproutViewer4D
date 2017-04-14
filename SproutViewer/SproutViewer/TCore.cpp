@@ -17,21 +17,10 @@
 
 
 TCore::TCore() : 
-	m_volumeShader("shader/volVtx.glsl"   , "shader/volFlg.glsl"),
-	m_crssecShader("shader/crssecVtx.glsl", "shader/crssecFlg.glsl")
+	m_shaderVol    ("shader/volVtx.glsl", "shader/volFlg.glsl"    ), m_shaderCrs    ("shader/crssecVtx.glsl", "shader/crssecFlg.glsl"    ),
+	m_shaderVolMask("shader/volVtx.glsl", "shader/volFlg_Msk.glsl"), m_shaderCrsMask("shader/crssecVtx.glsl", "shader/crssecFlg_Msk.glsl")
 {
 	m_bL = m_bR = m_bM = false;
-
-	/*
-	EMat2d M;
-	M << 1,2,3,4;
-	EVec2d a(1,2);
-
-	EVec2d b = M*a;
-	fprintf( stderr, "aaaaaaaaaaaaaaaaaaaa %f %f\n\n\n\n", b[0], b[1]);
-	*/
-
-
 }
 
 
@@ -116,28 +105,41 @@ void TCore::MouseMove ( CPoint p, OglForMFC &ogl )
 }
 
 
+
+
+
+
+
 void TCore::drawScene(const EVec3f &camP, const EVec3f &camF, const EVec3f &camY)
 {
-	const EVec3f cuboid = ImageManager::getInst()->getCuboidF();
-
-
-	glDisable( GL_LIGHTING );
-	glLineWidth( 5 );
-	glBegin( GL_LINES );
-		glColor3d(1,0,0); glVertex3d(0,0,0); glVertex3d(10,0,0);
-		glColor3d(0,1,0); glVertex3d(0,0,0); glVertex3d(0,10,0);
-		glColor3d(0,0,1); glVertex3d(0,0,0); glVertex3d(0,0,10);
-	glEnd();
-
-	const bool   bDrawVol = ImageManager::getInst()->m_dlg.m_check_volume.GetCheck()?true:false;
-	const bool   bDrawFrm = ImageManager::getInst()->m_dlg.m_check_frame .GetCheck()?true:false;
-	const float  alpha    = ImageManager::getInst()->m_dlg.getTransAlpha();
+	const EVec3f cuboid   = ImageManager::getInst()->getCuboidF();
 	const EVec3i reso     = ImageManager::getInst()->getReso ();
 	const EVec3f pitch    = ImageManager::getInst()->getPitch();
+	
+	const bool  bGradMag = false;
+	const bool  bPsuedo  = true ;
+	const bool  bXY      = ImageManager::getInst()->m_dlg.m_check_planeXY .GetCheck()?true:false;
+	const bool  bYZ      = ImageManager::getInst()->m_dlg.m_check_planeYZ .GetCheck()?true:false;
+	const bool  bZX      = ImageManager::getInst()->m_dlg.m_check_planeZX .GetCheck()?true:false;
+	const bool  bDrawVol = ImageManager::getInst()->m_dlg.m_check_volume  .GetCheck()?true:false;
+	const bool  bDrawMsk = ImageManager::getInst()->m_dlg.m_check_Mask    .GetCheck()?true:false;
+	const bool  bDrawFrm = ImageManager::getInst()->m_dlg.m_check_frame   .GetCheck()?true:false;
+	const bool  bDrawSrf = ImageManager::getInst()->m_dlg.m_check_surf    .GetCheck()?true:false;
+	const float alpha    = ImageManager::getInst()->m_dlg.getTransAlpha();
 
 
-	if( bDrawFrm ) t_drawFrame(cuboid);
+	if( bDrawFrm )
+	{
+		glDisable( GL_LIGHTING );
+		glLineWidth( 5 );
+		glBegin( GL_LINES );
+			glColor3d(1,0,0); glVertex3d(0,0,0); glVertex3d(10,0,0);
+			glColor3d(0,1,0); glVertex3d(0,0,0); glVertex3d(0,10,0);
+			glColor3d(0,0,1); glVertex3d(0,0,0); glVertex3d(0,0,10);
+		glEnd();
 
+		t_drawFrame(cuboid);
+	}
 
 
 	const int sliceN   = (int)( ((m_bL || m_bR || m_bM) ? 0.5: 1.0 ) * ImageManager::getInst()->m_dlg.m_slider_sliceN.GetPos() );
@@ -151,9 +153,8 @@ void TCore::drawScene(const EVec3f &camP, const EVec3f &camF, const EVec3f &camY
 	//ImageManager::getInst()->m_volGmag.bindOgl();
 	//glActiveTextureARB(GL_TEXTURE2);
 	//ImageManager::getInst()->m_volFlg.bindOgl(false);
-	//glActiveTextureARB(GL_TEXTURE3);
-	//ImageManager::getInst()->m_volMsk.bindOgl(false);
-	
+	glActiveTextureARB(GL_TEXTURE3);
+	ImageManager::getInst()->m_volMask.bindOgl(false);
 	glActiveTextureARB(GL_TEXTURE4);
 	ImageManager::getInst()->m_imgTf.bindOgl(false);
 	glActiveTextureARB(GL_TEXTURE5);
@@ -180,27 +181,50 @@ void TCore::drawScene(const EVec3f &camP, const EVec3f &camF, const EVec3f &camY
 	}
 	*/
 
-	const bool bGradMag = false;
-	const bool bPsuedo  = true ;
-	const bool bXY      = ImageManager::getInst()->m_dlg.m_check_planeXY.GetCheck()?true:false;
-	const bool bYZ      = ImageManager::getInst()->m_dlg.m_check_planeYZ.GetCheck()?true:false;
-	const bool bZX      = ImageManager::getInst()->m_dlg.m_check_planeZX.GetCheck()?true:false;
-
 	glColor3d(1, 1, 1);
-	m_crssecShader.bind(0, 1, 2, 3, 6, reso, bGradMag, false);
-	CrsSecCore::getInst()->drawCrosSec( bXY, bYZ, bZX, cuboid);
-	m_crssecShader.unbind();
 
-	if ( bDrawVol )
+	if (bDrawMsk)
 	{
-
-		glDisable( GL_DEPTH_TEST);
-		glEnable ( GL_BLEND);
-		m_volumeShader.bind(0, 1, 2, 3, 4, 5, 6, alpha, reso, camP, bPsuedo, false);
-		t_drawSlices(sliceN, camP, camF, cuboid );
-		m_volumeShader.unbind();
-		glDisable( GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
+		m_shaderCrsMask.bind(0, 1, 2, 3, 6, reso, bGradMag, true);
+		CrsSecCore::getInst()->drawCrosSec( bXY, bYZ, bZX, cuboid);
+		m_shaderCrsMask.unbind();
+		
+		if ( bDrawVol )
+		{
+			glDisable( GL_DEPTH_TEST);
+			glEnable ( GL_BLEND);
+			m_shaderVolMask.bind(0, 1, 2, 3, 4, 5, 6, alpha, reso, camP, bPsuedo, false);
+			t_drawSlices(sliceN, camP, camF, cuboid );
+			m_shaderVolMask.unbind();
+			glDisable( GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+		}
 	}
-	
+	else
+	{
+		m_shaderCrs.bind(0, 1, 2, 3, 6, reso, bGradMag, false);
+		CrsSecCore::getInst()->drawCrosSec( bXY, bYZ, bZX, cuboid);
+		m_shaderCrs.unbind();
+
+		if ( bDrawVol )
+		{
+			glDisable( GL_DEPTH_TEST);
+			glEnable ( GL_BLEND);
+			m_shaderVol.bind(0, 1, 2, 3, 4, 5, 6, alpha, reso, camP, bPsuedo, false);
+			t_drawSlices(sliceN, camP, camF, cuboid );
+			m_shaderVol.unbind();
+			glDisable( GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+		}
+	}	
+
+
+	if (bDrawSrf)
+	{
+		const int time= ImageManager::getInst()->m_dlg.m_slider_timeI.GetPos();
+		ImageManager::getInst()->m_surf4D[time].draw();
+		
+	}
+
+
 }

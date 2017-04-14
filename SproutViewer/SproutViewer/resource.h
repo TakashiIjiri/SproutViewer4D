@@ -29,15 +29,22 @@
 #define IDC_EDIT_WINLV_MIN              1017
 #define IDC_SLIDER_WINLV_MAX            1018
 #define IDC_EDIT_WINLV_MAX              1019
+#define IDC_CHECK_VIS_MASK              1020
+#define IDC_CHECK_VIS_SURF              1021
+#define IDC_BUTTON_COMPUTE_MASK         1022
+#define IDC_BUTTON_COMPUTE_SURF         1023
 #define ID_FILE_LOAD4DCT                32771
+#define ID_FILE_LOAD4DCT32772           32772
+#define ID_FILE_LOAD4DCT_TRAW           32773
+#define ID_FILE_LOADMASK                32774
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        314
-#define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1008
+#define _APS_NEXT_COMMAND_VALUE         32775
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
 #endif

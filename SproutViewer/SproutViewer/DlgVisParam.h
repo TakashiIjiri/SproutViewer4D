@@ -64,6 +64,9 @@ public:
 	CButton m_check_bgBlack;
 	CButton m_check_frame  ;
 	CButton m_check_volume ;
+	CButton m_check_Mask   ;
+	CButton m_check_surf   ;
+
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
@@ -74,8 +77,15 @@ public:
 	afx_msg void OnMouseMove  (UINT nFlags, CPoint point);
 	afx_msg void OnBnClickedCheckBkWhite();
 	afx_msg void OnBnClickedCheckBkBlack();
+	afx_msg void OnBnClickedCheckFrame  ();
+	afx_msg void OnBnClickedCheckVolume ();
+	afx_msg void OnBnClickedCheckPlaneXy();
+	afx_msg void OnBnClickedCheckPlaneYz();
+	afx_msg void OnBnClickedCheckPlaneZx();
+	afx_msg void OnBnClickedCheckVisSurf();
+	afx_msg void OnBnClickedCheckVisMask();
 	afx_msg void OnPaint();
-
-
 	float getTransAlpha();
-};
+	afx_msg void OnBnClickedButtonComputeSurf();
+	afx_msg void OnBnClickedButtonComputeMask();
+	};

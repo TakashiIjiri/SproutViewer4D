@@ -49,6 +49,8 @@ protected:
 
 public:
 	afx_msg void OnFileLoad4dct();
-};
+	afx_msg void OnFileLoad4dctTraw();
+	afx_msg void OnFileLoadmask();
+	};
 
 

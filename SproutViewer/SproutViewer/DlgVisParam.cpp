@@ -49,18 +49,20 @@ void DlgVisParam::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_WINLV_MAX, m_slider_winLvMax);
 
 
-	DDX_Control(pDX, IDC_PC_TRANSFUNC1, m_pc1);
-	DDX_Control(pDX, IDC_PC_TRANSFUNC2, m_pc2);
+	DDX_Control(pDX, IDC_PC_TRANSFUNC1 , m_pc1);
+	DDX_Control(pDX, IDC_PC_TRANSFUNC2 , m_pc2);
 	DDX_Control(pDX, IDC_CHECK_PLANE_XY, m_check_planeXY);
 	DDX_Control(pDX, IDC_CHECK_PLANE_YZ, m_check_planeYZ);
 	DDX_Control(pDX, IDC_CHECK_PLANE_ZX, m_check_planeZX);
 	DDX_Control(pDX, IDC_CHECK_BK_WHITE, m_check_bgWhite);
 	DDX_Control(pDX, IDC_CHECK_BK_BLACK, m_check_bgBlack);
-	DDX_Control(pDX, IDC_CHECK_FRAME, m_check_frame);
-	DDX_Control(pDX, IDC_CHECK_VOLUME, m_check_volume);
+	DDX_Control(pDX, IDC_CHECK_FRAME   , m_check_frame);
+	DDX_Control(pDX, IDC_CHECK_VOLUME  , m_check_volume);
 	DDX_Control(pDX, IDC_EDIT_WINLV_MIN, m_edit_WinLvMin);
 	DDX_Control(pDX, IDC_EDIT_WINLV_MAX, m_edit_WinLvMax);
-	DDX_Control(pDX, IDC_EDIT_TIMEI, m_edit_timeI);
+	DDX_Control(pDX, IDC_EDIT_TIMEI    , m_edit_timeI);
+	DDX_Control(pDX, IDC_CHECK_VIS_MASK, m_check_Mask);
+	DDX_Control(pDX, IDC_CHECK_VIS_SURF, m_check_surf);
 }
 
 
@@ -74,6 +76,15 @@ BEGIN_MESSAGE_MAP(DlgVisParam, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_BK_WHITE, &DlgVisParam::OnBnClickedCheckBkWhite)
 	ON_BN_CLICKED(IDC_CHECK_BK_BLACK, &DlgVisParam::OnBnClickedCheckBkBlack)
 	ON_WM_PAINT()
+	ON_BN_CLICKED(IDC_CHECK_FRAME, &DlgVisParam::OnBnClickedCheckFrame)
+	ON_BN_CLICKED(IDC_CHECK_VOLUME, &DlgVisParam::OnBnClickedCheckVolume)
+	ON_BN_CLICKED(IDC_CHECK_PLANE_XY, &DlgVisParam::OnBnClickedCheckPlaneXy)
+	ON_BN_CLICKED(IDC_CHECK_PLANE_YZ, &DlgVisParam::OnBnClickedCheckPlaneYz)
+	ON_BN_CLICKED(IDC_CHECK_PLANE_ZX, &DlgVisParam::OnBnClickedCheckPlaneZx)
+	ON_BN_CLICKED(IDC_CHECK_VIS_SURF, &DlgVisParam::OnBnClickedCheckVisSurf)
+	ON_BN_CLICKED(IDC_CHECK_VIS_MASK, &DlgVisParam::OnBnClickedCheckVisMask)
+	ON_BN_CLICKED(IDC_BUTTON_COMPUTE_SURF, &DlgVisParam::OnBnClickedButtonComputeSurf)
+	ON_BN_CLICKED(IDC_BUTTON_COMPUTE_MASK, &DlgVisParam::OnBnClickedButtonComputeMask)
 END_MESSAGE_MAP()
 
 
@@ -279,6 +290,7 @@ BOOL DlgVisParam::OnInitDialog()
 
 	m_check_frame   .SetCheck(1);
 	m_check_volume  .SetCheck(1);
+	m_check_Mask    .SetCheck(0);
 	m_check_planeXY .SetCheck(1);
 	m_check_planeYZ .SetCheck(1);
 	m_check_planeZX .SetCheck(1);
@@ -617,8 +629,6 @@ void DlgVisParam::OnBnClickedCheckBkWhite()
 	m_check_bgBlack.SetCheck(0);
 	CSproutViewerView::getInst()->RedrawWindow();
 }
-
-
 void DlgVisParam::OnBnClickedCheckBkBlack()
 {
 	m_check_bgWhite.SetCheck(0);
@@ -626,6 +636,33 @@ void DlgVisParam::OnBnClickedCheckBkBlack()
 	CSproutViewerView::getInst()->RedrawWindow();
 }
 
+void DlgVisParam::OnBnClickedCheckVolume()
+{
+	CSproutViewerView::getInst()->RedrawWindow();
+}
+
+void DlgVisParam::OnBnClickedCheckVisMask()
+{
+	CSproutViewerView::getInst()->RedrawWindow();
+}
+
+void DlgVisParam::OnBnClickedCheckPlaneXy(){ CSproutViewerView::getInst()->RedrawWindow(); }
+void DlgVisParam::OnBnClickedCheckPlaneYz(){ CSproutViewerView::getInst()->RedrawWindow(); }
+void DlgVisParam::OnBnClickedCheckPlaneZx(){ CSproutViewerView::getInst()->RedrawWindow(); }
+void DlgVisParam::OnBnClickedCheckFrame  (){ CSproutViewerView::getInst()->RedrawWindow(); }
+void DlgVisParam::OnBnClickedCheckVisSurf(){ CSproutViewerView::getInst()->RedrawWindow(); }
 
 
 
+void DlgVisParam::OnBnClickedButtonComputeSurf()
+{
+	ImageManager::getInst()->updateSurfFromMask();
+	CSproutViewerView::getInst()->RedrawWindow();
+}
+
+
+void DlgVisParam::OnBnClickedButtonComputeMask()
+{
+	ImageManager::getInst()->updateMask();
+	CSproutViewerView::getInst()->RedrawWindow();
+}

@@ -164,6 +164,12 @@ void CSproutViewerView::OnDraw(CDC* /*pDC*/)
 	if (!pDoc)
 		return;
 
+	if(ImageManager::getInst()->m_dlg.m_check_bgBlack.GetCheck() )
+		m_ogl.SetBgColor(EVec4f(0,0,0,0));
+	else 
+		m_ogl.SetBgColor(EVec4f(1,1,1,1));
+
+
 	m_ogl.OnDrawBegin();
 
 	EVec3f camP = m_ogl.GetCamPos();
@@ -258,12 +264,13 @@ CString CSproutViewerView::BrowseForFolder( HWND p_hWnd, CString p_cSetStr, CStr
 }
 
 
-void CSproutViewerView::load4dct()
+void CSproutViewerView::load4dct(int flg_DCM_traw)
 {
 	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
-	ImageManager::getInst()->load4DCT( m_topDir );
+	ImageManager::getInst()->load4DCT( m_topDir,flg_DCM_traw );
 	//postInitialization();
 }
+
 
 BOOL CSproutViewerView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {

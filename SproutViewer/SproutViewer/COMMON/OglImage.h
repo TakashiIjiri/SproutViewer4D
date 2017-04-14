@@ -182,6 +182,13 @@ public:
 
 		m_bUpdated = true;
 	}
+	
+	void SetValue( byte *v )
+	{
+		if ( m_vol == 0 ) return;
+		memcpy( m_vol, v, sizeof( byte) * m_res[0] * m_res[1] * m_res[2] );
+		m_bUpdated = true;
+	}
 
 
 	void SetValue(float** slices, const float minV, const float maxV)
