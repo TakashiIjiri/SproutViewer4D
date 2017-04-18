@@ -537,6 +537,55 @@ static void t_findTraAndRot(
 
 
 
+static double t_findRotAngle(
+	const int    W, // resolution 
+	const int    H, // resolution 
+	const double px, // pitch in W dir
+	const double py, // pitch in H dir
+	const double thetaPiv, //consider theta in [piv-range, piv+range]
+	const double thetaRange,
+	const double thetaStep,
+	const short  *img1,
+	const short  *img2
+)
+{
+	const EVec2d pixCenter(((double)W / 2.0 + 0.5)*px, ((double)H / 2.0 + 0.5)*py);
+
+	double foundTheta = 0;
+	double minDeg = DBL_MAX;
+
+	for (double t = thetaPiv - thetaRange; t <= thetaPiv + thetaRange; t += thetaStep)
+	{
+		double theta = t * M_PI / 180.0;
+		EMat2d M;
+		M << cos(theta), -sin(theta),
+			sin(theta), cos(theta);
+
+		double sum = 0;
+		for (int y = 100; y < H - 100; ++y)
+			for (int x = 100; x < W - 100; ++x)
+			{
+				EVec2d p((x + 0.5) * px, (y + 0.5)*py);
+				EVec2d pixPos = M*(p - pixCenter) + pixCenter;
+
+				int xx = (int)(pixPos[0] / px);
+				int yy = (int)(pixPos[1] / py);
+
+				if (0 <= xx && xx < W && 0 <= yy && yy < H)
+				{
+					sum += (img1[x + y * W] - img2[xx + yy * W]) * (img1[x + y * W] - img2[xx + yy * W]);
+				}
+			}
+
+		if (sum < minDeg)
+		{
+			minDeg = sum;
+			foundTheta = theta;
+		}
+	}
+
+	return foundTheta * 180 / M_PI;
+}
 
 
 // .traw3D_ssで画像書き出し
@@ -580,7 +629,7 @@ void ImageManager::fitRotation()
 	const double px  = m_img4D[0]->px;
 	const double py  = m_img4D[0]->py;
 	const double pz  = m_img4D[0]->pz;
-	const int SLICE_I = 300;
+	const int SLICE_I = 390;
 
 	//現在の回転角度，エラーが積み重なる可能性があるので、逐次更新する．
 	double fitAngle = 0, tmp;
@@ -589,12 +638,16 @@ void ImageManager::fitRotation()
 
 	for (int frame = 1; frame < m_img4D.size(); frame++) 
 	{
-		//search best fitting angle 
-		t_findTraAndRot(W,H,px,py, fitAngle, 10 , 0.1  , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], tmp, fitPosition);
-		t_findTraAndRot(W,H,px,py, tmp     , 0.1, 0.001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], fitAngle, fitPosition );
+		////search best fitting angle 
+		//t_findTraAndRot(W,H,px,py, fitAngle, 10 , 0.1  , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], tmp, fitPosition);
+		//t_findTraAndRot(W,H,px,py, tmp     , 0.1, 0.001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], fitAngle, fitPosition );
 
-		// rotate image		
-		const EVec2d center = t_findObjectCenter(H, W, px, py, SHORT_MIN + 10000, &m_img4D[0]->img[SLICE_I *W*H]);
+		// //rotate image		
+		//const EVec2d center = t_findObjectCenter(H, W, px, py, SHORT_MIN + 10000, &m_img4D[0]->img[SLICE_I *W*H]);
+		double tmp = t_findRotAngle(W, H, px, py, fitAngle, 10  , 0.1   , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H]);
+		fitAngle   = t_findRotAngle(W, H, px, py, tmp,      0.1 , 0.0001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H]);
+		fprintf(stderr, "%d / %d  fitAngle = %f\n", frame, m_img4D.size() - 1, fitAngle);
+		const EVec2d pixCenter(((double)W / 2.0 + 0.5)*px, ((double)H / 2.0 + 0.5)*py);
 		const double theta  = fitAngle * M_PI / 180.0;
 		EMat2d M;
 		M << cos(theta), -sin(theta), 
@@ -609,8 +662,9 @@ void ImageManager::fitRotation()
 		for (int x = 0; x < W; x++)
 		{
 			EVec2d p( (x+0.5)*px, (y+0.5)*py );
-			EVec2d pos = M * (p - center) + center;		
-			pos += fitPosition;						
+			//EVec2d pos = M * (p - center) + center;		
+			//pos += fitPosition;						
+			EVec2d pos = M * (p - pixCenter) + pixCenter;		
 
 			const double xx = (pos[0] / px);
 			const double yy = (pos[1] / py);
@@ -687,11 +741,10 @@ void ImageManager::updateHistogram()
 }
 
 
-
+//m_mask4D[0]からm_mask[i]を計算する
 void ImageManager::updateMask()
 {
-	//ここを成田君に任せる。
-	//m_mask4D[0]からm_mask[i]を計算する
+	 
 }
 
 void ImageManager::updateSurfFromMask()
