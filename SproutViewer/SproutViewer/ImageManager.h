@@ -156,7 +156,7 @@ public:
 
 private:
 	void fitRotation();
-
+	void saveMask(const int W, const int H, const int D, const byte *img, const int maskN, const string  fname);
 
 };
 

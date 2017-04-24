@@ -16,6 +16,7 @@
 #include "./3rdParty/dcmtk/tdcmtk.h"
 #include "resource.h"
 
+#include <queue>
 
 ImageManager::ImageManager()
 {
@@ -341,12 +342,36 @@ void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 	for (int i = 0; i < TRANS_FUNC_SIZE; ++i) m_imgTf[4 * i] = m_imgTf[4 * i + 1] = i;
 
 	m_imgMskCol[0] = m_imgMskCol[1] = m_imgMskCol[2] = m_imgMskCol[3] = 0;
-	for( int i=1; i < 256; ++i)
+
+	m_imgMskCol[4]     = 0;
+	m_imgMskCol[4 + 1] = 0;
+	m_imgMskCol[4 + 2] = 0;
+	m_imgMskCol[4 + 3] = 20;
+
+	int sproutColor[16][3] = { 
+		{ 203,  83, 147 }, { 255, 240,   1 }, { 160, 194,  56 }, { 107, 182, 187 },
+		{   0, 165, 231 }, { 205,  86,  56 }, {   1, 104, 179 }, { 242, 207,   1 },
+		{   0, 152,  75 }, { 214, 133, 176 }, { 215, 129,  20 }, { 165,  99, 160 },
+		{   0, 157, 198 }, { 196, 200,  41 }, { 149,   0, 126 }, { 108, 120,  34 }
+	};
+
+
+	for (int i = 2; i < 256; ++i)
 	{
-		m_imgMskCol[4*i+0] = (i%7)*64; 
-		m_imgMskCol[4*i+1] = (i%2)*255; 
-		m_imgMskCol[4*i+2] = (i%5)*128; 
-		m_imgMskCol[4*i+3] = 255; 
+		if (i < 18)
+		{
+			m_imgMskCol[4 * i + 0] = sproutColor[i-2][0];
+			m_imgMskCol[4 * i + 1] = sproutColor[i-2][1];
+			m_imgMskCol[4 * i + 2] = sproutColor[i-2][2];
+			m_imgMskCol[4 * i + 3] = 255;
+		}
+		else 
+		{
+			m_imgMskCol[4 * i + 0] = 250;
+			m_imgMskCol[4 * i + 1] = 250;
+			m_imgMskCol[4 * i + 2] = 250;
+			m_imgMskCol[4 * i + 3] = 255;
+		}
 	}
 
 
@@ -425,115 +450,115 @@ void ImageManager::loadMaskAtInitFrame(CString fname)
 
 
 
-// 物体の中心を探す -> center(x, y)
-static EVec2d t_findObjectCenter(
-	const int    W,
-	const int    H,
-	const double px,
-	const double py,
-	const double threshold,
-	const short  *img
-)
-{
-	int top, bottom, left, right;
-
-	top = left = INT_MAX;
-	bottom = right = INT_MIN;
-
-	for (int y = 0; y < H; y++)
-	for (int x = 0; x < W; x++)
-	{
-		if (threshold <= img[x + y*H])
-		{
-			if (x < left ) { left  = x; }
-			if (x > right) { right = x; }
-			if (y < top)   { top    = y; }
-			if (y > bottom){ bottom = y; }
-
-		}
-	}
-
-	EVec2d center((double)(right + left) / 2.0 + 0.5, (double)(top + bottom) / 2.0 + 0.5);
-
-	center[0] *= px;
-	center[1] *= py;
-
-	return center;
-}
-
-
-
-
-
-
-//      0     1     2     3     4
-//   |-----|-----|-----|-----|-----|     N=5, pitch = 0.1
-//   0    0.1   0.2   0.3   0.4   0.5
-
-
-// !!!!!!!!!note!!!!!!!!!!!!!! 
-// pix index (int) --> 2d space (double) 
-// (u,v) --> ( (u+0.5)* pitchX, (v+0.5)*pitchY )
-
-// 2D space (double) --> pix index
-// (x,y) --> ((int)( x / pitchX ), (int)( y / pitchY ))
-
-static void t_findTraAndRot(
-	const int    W , // resolution 
-	const int    H , // resolution 
-	const double px, // pitch in W dir
-	const double py, // pitch in H dir
-	const double thetaPiv  , //consider theta in [piv-range, piv+range]
-	const double thetaRange,
-	const double thetaStep , 
-	const short  *img1,
-	const short  *img2,
-	double       &fitAngle,
-	EVec2d       &fitPos
-	)
-{
-	const EVec2d pixCenter       = t_findObjectCenter(W, H, px, py, SHORT_MIN + 10000, img1); // 比較元(frame=0　)の物体の中心
-	const EVec2d pixObjectCenter = t_findObjectCenter(W, H, px, py, SHORT_MIN + 10000, img2); // 比較先(frame=1～)の物体の中心
-
-	// 物体の中心位置のズレ
-	const EVec2d transPos = pixObjectCenter - pixCenter;
-
-	double foundTheta = 0;
-	double minDeg = DBL_MAX;
-
-	for (double t = thetaPiv - thetaRange; t <= thetaPiv + thetaRange; t += thetaStep) 
-	{
-		double theta = t * M_PI / 180.0;
-		EMat2d M;
-		M <<  cos(theta), -sin(theta), 
-			  sin(theta),  cos(theta);
-
-		double sum = 0;
-		for (int y = 100; y < H - 100; ++y)
-		for (int x = 100; x < W - 100; ++x) 
-		{
-			EVec2d p( (x+0.5) * px, (y+0.5)*py  ) ; 
-			EVec2d pixPos = M*(p - pixCenter) + pixCenter;
-			pixPos += transPos;
-
-			int xx = (int)( pixPos[0] / px );
-			int yy = (int)( pixPos[1] / py );
-
-			if (0 <= xx && xx < W && 0 <= yy && yy < H ) 
-			{
-				sum += (img1[x + y * W] - img2[ xx + yy * W ]) * (img1[x + y * W] - img2[ xx + yy * W ]);
-			}
-		}
-
-		if (sum < minDeg) 
-		{
-			minDeg = sum;
-			foundTheta = theta;
-		}
-	}	
-	fitAngle = foundTheta * 180 / M_PI;
-	fitPos   = transPos;
-}
+//// 物体の中心を探す -> center(x, y)
+//static EVec2d t_findObjectCenter(
+//	const int    W,
+//	const int    H,
+//	const double px,
+//	const double py,
+//	const double threshold,
+//	const short  *img
+//)
+//{
+//	int top, bottom, left, right;
+//
+//	top = left = INT_MAX;
+//	bottom = right = INT_MIN;
+//
+//	for (int y = 0; y < H; y++)
+//	for (int x = 0; x < W; x++)
+//	{
+//		if (threshold <= img[x + y*H])
+//		{
+//			if (x < left ) { left  = x; }
+//			if (x > right) { right = x; }
+//			if (y < top)   { top    = y; }
+//			if (y > bottom){ bottom = y; }
+//
+//		}
+//	}
+//
+//	EVec2d center((double)(right + left) / 2.0 + 0.5, (double)(top + bottom) / 2.0 + 0.5);
+//
+//	center[0] *= px;
+//	center[1] *= py;
+//
+//	return center;
+//}
+//
+//
+//
+//
+//
+//
+////      0     1     2     3     4
+////   |-----|-----|-----|-----|-----|     N=5, pitch = 0.1
+////   0    0.1   0.2   0.3   0.4   0.5
+//
+//
+//// !!!!!!!!!note!!!!!!!!!!!!!! 
+//// pix index (int) --> 2d space (double) 
+//// (u,v) --> ( (u+0.5)* pitchX, (v+0.5)*pitchY )
+//
+//// 2D space (double) --> pix index
+//// (x,y) --> ((int)( x / pitchX ), (int)( y / pitchY ))
+//
+//static void t_findTraAndRot(
+//	const int    W , // resolution 
+//	const int    H , // resolution 
+//	const double px, // pitch in W dir
+//	const double py, // pitch in H dir
+//	const double thetaPiv  , //consider theta in [piv-range, piv+range]
+//	const double thetaRange,
+//	const double thetaStep , 
+//	const short  *img1,
+//	const short  *img2,
+//	double       &fitAngle,
+//	EVec2d       &fitPos
+//	)
+//{
+//	const EVec2d pixCenter       = t_findObjectCenter(W, H, px, py, SHORT_MIN + 10000, img1); // 比較元(frame=0　)の物体の中心
+//	const EVec2d pixObjectCenter = t_findObjectCenter(W, H, px, py, SHORT_MIN + 10000, img2); // 比較先(frame=1～)の物体の中心
+//
+//	// 物体の中心位置のズレ
+//	const EVec2d transPos = pixObjectCenter - pixCenter;
+//
+//	double foundTheta = 0;
+//	double minDeg = DBL_MAX;
+//
+//	for (double t = thetaPiv - thetaRange; t <= thetaPiv + thetaRange; t += thetaStep) 
+//	{
+//		double theta = t * M_PI / 180.0;
+//		EMat2d M;
+//		M <<  cos(theta), -sin(theta), 
+//			  sin(theta),  cos(theta);
+//
+//		double sum = 0;
+//		for (int y = 100; y < H - 100; ++y)
+//		for (int x = 100; x < W - 100; ++x) 
+//		{
+//			EVec2d p( (x+0.5) * px, (y+0.5)*py  ) ; 
+//			EVec2d pixPos = M*(p - pixCenter) + pixCenter;
+//			pixPos += transPos;
+//
+//			int xx = (int)( pixPos[0] / px );
+//			int yy = (int)( pixPos[1] / py );
+//
+//			if (0 <= xx && xx < W && 0 <= yy && yy < H ) 
+//			{
+//				sum += (img1[x + y * W] - img2[ xx + yy * W ]) * (img1[x + y * W] - img2[ xx + yy * W ]);
+//			}
+//		}
+//
+//		if (sum < minDeg) 
+//		{
+//			minDeg = sum;
+//			foundTheta = theta;
+//		}
+//	}	
+//	fitAngle = foundTheta * 180 / M_PI;
+//	fitPos   = transPos;
+//}
 
 
 
@@ -635,18 +660,13 @@ void ImageManager::fitRotation()
 	double fitAngle = 0, tmp;
 	EVec2d fitPosition(0, 0);
 
+	imageOutput(W, H, D, px, py, pz, m_img4D[0]->img, "object" + 0);
 
 	for (int frame = 1; frame < m_img4D.size(); frame++) 
 	{
-		////search best fitting angle 
-		//t_findTraAndRot(W,H,px,py, fitAngle, 10 , 0.1  , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], tmp, fitPosition);
-		//t_findTraAndRot(W,H,px,py, tmp     , 0.1, 0.001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H], fitAngle, fitPosition );
-
-		// //rotate image		
-		//const EVec2d center = t_findObjectCenter(H, W, px, py, SHORT_MIN + 10000, &m_img4D[0]->img[SLICE_I *W*H]);
 		double tmp = t_findRotAngle(W, H, px, py, fitAngle, 10  , 0.1   , &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H]);
 		fitAngle   = t_findRotAngle(W, H, px, py, tmp,      0.1 , 0.0001, &m_img4D[0]->img[SLICE_I *W*H], &m_img4D[frame]->img[SLICE_I *W*H]);
-		fprintf(stderr, "%d / %d  fitAngle = %f\n", frame, m_img4D.size() - 1, fitAngle);
+		
 		const EVec2d pixCenter(((double)W / 2.0 + 0.5)*px, ((double)H / 2.0 + 0.5)*py);
 		const double theta  = fitAngle * M_PI / 180.0;
 		EMat2d M;
@@ -689,10 +709,6 @@ void ImageManager::fitRotation()
 		fprintf(stderr, "%d / %d finish.\n", frame, (int) m_img4D.size() - 1);
 
 	}
-
-
-
-
 
 }
 
@@ -741,10 +757,246 @@ void ImageManager::updateHistogram()
 }
 
 
-//m_mask4D[0]からm_mask[i]を計算する
+inline int pointID(const EVec3i point, const int W, const int H) {
+	return point[0] + point[1] * W + point[2] * W*H;
+}
+
+bool isOutsideVolume(const EVec3i pos, const EVec3i vol) {
+	for (int i = 0; i < 3; i++)
+	{
+		if (pos[i] < 0 || pos[i] >= vol[i]) return true;
+	}
+	return false;
+}
+
+void dilation(const int W, const int H, const int D, byte *vol) {
+
+	byte *tmp = new byte[W*H*D];
+	memcpy(tmp, vol, sizeof(byte)*W*H*D);
+
+	#pragma omp parallel for
+	for (int z = 0; z < D; z++)
+	for (int y = 0; y < H; y++)
+	for (int x = 0; x < W; x++)
+	{
+		if (tmp[x + y*W + z*W*H]) continue;
+
+		EVec3i points[6];
+		points[0] << x, y, z - 1;
+		points[1] << x, y, z + 1;
+		points[2] << x, y - 1, z;
+		points[3] << x, y + 1, z;
+		points[4] << x - 1, y, z;
+		points[5] << x + 1, y, z;
+
+		for (int i = 0; i < 6; i++) {
+			if (isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
+			if (tmp[pointID(points[i], W, H)]) vol[x + y*W + z*W*H] = 1;
+		}
+	}
+	
+	delete[] tmp;
+}
+
+
+void erosion(const int W, const int H, const int D, byte *vol) {
+
+	byte *tmp = new byte[W*H*D];
+	memcpy(tmp, vol, sizeof(byte)*W*H*D);
+
+	#pragma omp parallel for
+	for (int z = 0; z < D; z++)
+	for (int y = 0; y < H; y++)
+	for (int x = 0; x < W; x++)
+	{
+		if (tmp[x + y*W + z*W*H] == 0) continue;
+
+		EVec3i points[6];
+		points[0] << x, y, z - 1;
+		points[1] << x, y, z + 1;
+		points[2] << x, y - 1, z;
+		points[3] << x, y + 1, z;
+		points[4] << x - 1, y, z;
+		points[5] << x + 1, y, z;
+
+		for (int i = 0; i < 6; i++) {
+			if (isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
+			if (tmp[pointID(points[i], W, H)] == 0) vol[x + y*W + z*W*H] = 0;
+		}
+	}
+	delete[] tmp;
+}
+
+
+bool isSproutID(int id) {
+	if (id < 2)  return false;
+	if (id > 17) return false;
+	return true;
+}
+
+void IDSet(
+	const int W,
+	const int H,
+	const int D,
+	const byte *srcBin,
+	const byte *srcMask,
+	byte *dstMask
+) {
+	vector<EVec3i> searchPoints;
+	#pragma omp parallel for
+	for (int z = 0; z < D; z++)
+	for (int y = 0; y < H; y++)
+	for (int x = 0; x < W; x++)
+	{
+		if (isSproutID(srcMask[x + y*W + z*W*H]))
+		{
+			searchPoints.push_back(EVec3i(x, y, z));
+		}
+	}
+
+	#pragma omp parallel for
+	for (int z = 0; z < D; z++)
+	for (int y = 0; y < H; y++)
+	for (int x = 0; x < W; x++)
+	{
+		
+		if (srcBin[x + y*W + z*W*H] == 1)
+		{
+			if (isSproutID(srcMask[x + y*W + z*W*H])) {
+				dstMask[x + y*W + z*W*H] = srcMask[x + y * W + z * W*H];
+				continue;
+			}
+
+			float min = FLT_MAX;
+			int minIndex = 0;
+			for (int i = 0; i < searchPoints.size(); i++) {
+				float dict = (searchPoints[i] - EVec3i(x, y, z)).norm();
+				if (min > dict)
+				{
+					min      = dict;
+					minIndex = i;
+				}
+			}
+			EVec3i findPos = searchPoints[minIndex];
+			dstMask[x + y*W + z*W*H] = srcMask[ findPos[0]+ findPos[1]*W + findPos[2]*W*H ];
+		}
+	}		
+	
+	for (int i = 0; i < W*H*D; ++i)
+	{
+		if (srcMask[i] == 1) dstMask[i] = 1;
+	}
+}
+
+// .mskで画像書き出し
+void ImageManager::saveMask(
+	const int     W,  // resolution 
+	const int     H,  // resolution 
+	const int     D,  // resolution 
+	const byte   *img,
+	const int     maskN,
+	const string  fname
+)
+{
+
+	int version = 0;
+	ofstream fout;
+	fout.open(fname + ".msk", ios::out | ios::binary);
+	fout.write((char *)(&version), sizeof(int));
+	fout.write((char *)(&W),    sizeof(int));
+	fout.write((char *)(&H),   sizeof(int));
+	fout.write((char *)(&D),   sizeof(int));
+	fout.write((char *)(img), sizeof(byte)*W*H*D);
+	fout.write((char *)(&maskN), sizeof(int));
+
+	for (int i = 0; i < maskN; ++i)
+	{
+		double alpha = m_imgMskCol[4 * i + 3];
+		int    lock  = 0;
+		int    nLen  = fname.length();
+		fout.write((char *)(&(alpha))              , sizeof(double));
+		fout.write((char *)(&(m_imgMskCol[4 * i])) , sizeof(int)*3);
+		fout.write((char *)(&lock)                 , sizeof(int));
+		fout.write((char *)(&nLen)                 , sizeof(int));
+
+		fout.write(fname.c_str(), sizeof(char)*(nLen+1));
+	}
+
+	fout.close();
+
+}
+//m_mask4D[0]からm_mask4D[i]を計算する
 void ImageManager::updateMask()
 {
-	 
+	fprintf(stderr, "updateMask-----------------------\n");
+
+	const int    W = m_img4D[0]->W;
+	const int    H = m_img4D[0]->H;
+	const int    D = m_img4D[0]->D;
+	const int    WHD = W * H * D;
+
+	const short threshold     = -20000;
+	const byte  stageID       = 1;
+	const short waterCutSlice = 330;
+
+	byte *binCage     = new byte[WHD]; // Is
+
+	for (int i = 0; i < WHD; ++i)
+	{
+		binCage[i]  = (m_mask4D[0][i] == stageID)    ? 1 : 0;
+	}
+
+	fprintf(stderr, "Stage Set");
+
+	dilation(W, H, D, binCage); // cage dilation
+
+	byte *binVol = new byte[WHD]; // I'
+
+	for (int frame = 1; frame < (int)m_img4D.size(); ++frame)
+	{
+		
+		// 二値化してステージや水と豆苗のみにする　(I' ) 
+		// ステージ部分を切り出す（ I' - Is = I'' ）
+		for (int i = 0; i < WHD; ++i)
+		{
+			if (m_img4D[frame]->img[i] < threshold || 
+				binCage[i] == 1                || 
+				i > waterCutSlice*W*H )
+			{
+				binVol[i] = 0;
+			}
+			else
+			{
+				binVol[i] = 1;
+			}
+		}
+
+		// vol 豆苗と関係ない小さなゴミを除去（ Openingを利用 ）
+		const short openingTime = 2;
+
+		fprintf(stderr, "\r%3d / %3d Opening      ", frame, (int)m_img4D.size() - 1);
+
+		for (int i = 0; i < openingTime; i++) erosion (W, H, D, binVol);
+		for (int i = 0; i < openingTime; i++) dilation(W, H, D, binVol);
+		
+		
+		// volの独立領域にIDを設定。前フレームのIDを利用。
+		fprintf(stderr, "\r%3d / %3d Label Set       ", frame, (int)m_img4D.size() - 1);
+
+		byte *idMsk = new byte[W*H*D];
+		IDSet(W, H, D, binVol, m_mask4D[frame-1], m_mask4D[frame]);
+
+		delete[] idMsk;
+
+		fprintf(stderr, "\r%3d / %3d finish       ", frame, (int)m_img4D.size() - 1);
+		
+		string fname("objectMask" + to_string(frame));
+		saveMask(W, H, D, m_mask4D[frame], 18, fname);
+	}
+	fprintf(stderr, "\n");
+
+	delete[] binVol;
+	delete[] binCage;
 }
 
 void ImageManager::updateSurfFromMask()
