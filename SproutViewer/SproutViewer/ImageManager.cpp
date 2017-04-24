@@ -843,7 +843,6 @@ void IDSet(
 	byte *dstMask
 ) {
 	vector<EVec3i> searchPoints;
-	#pragma omp parallel for
 	for (int z = 0; z < D; z++)
 	for (int y = 0; y < H; y++)
 	for (int x = 0; x < W; x++)
@@ -983,10 +982,8 @@ void ImageManager::updateMask()
 		// volの独立領域にIDを設定。前フレームのIDを利用。
 		fprintf(stderr, "\r%3d / %3d Label Set       ", frame, (int)m_img4D.size() - 1);
 
-		byte *idMsk = new byte[W*H*D];
 		IDSet(W, H, D, binVol, m_mask4D[frame-1], m_mask4D[frame]);
 
-		delete[] idMsk;
 
 		fprintf(stderr, "\r%3d / %3d finish       ", frame, (int)m_img4D.size() - 1);
 		
