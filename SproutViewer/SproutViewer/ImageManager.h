@@ -138,7 +138,7 @@ public:
 
 
 	void load4DCT(CString topDir, int flg_DCMs_or_traw );
-	void loadMaskAtInitFrame(CString fname);
+	void loadMask(CString fname);
 
 	void UpdateWindowLevel(float minV, float maxV);
 	void updateVisVolume( int winLvMin, int winLvMax, int time );
@@ -155,8 +155,10 @@ public:
 
 
 private:
+	vector<int> m_correctMask;
+	
 	void fitRotation();
-
+	void saveMask(const int W, const int H, const int D, const byte *img, const int maskN, const string  fname);
 
 };
 

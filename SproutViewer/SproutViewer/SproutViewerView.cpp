@@ -271,6 +271,12 @@ void CSproutViewerView::load4dct(int flg_DCM_traw)
 	//postInitialization();
 }
 
+void CSproutViewerView::loadMask()
+{
+	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
+	ImageManager::getInst()->loadMask(m_topDir);
+	//postInitialization();
+}
 
 BOOL CSproutViewerView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
