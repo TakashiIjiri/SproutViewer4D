@@ -346,7 +346,7 @@ void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 	m_imgMskCol[4]     = 0;
 	m_imgMskCol[4 + 1] = 0;
 	m_imgMskCol[4 + 2] = 0;
-	m_imgMskCol[4 + 3] = 20;
+	m_imgMskCol[4 + 3] = 3;
 
 	int sproutColor[16][3] = { 
 		{ 203,  83, 147 }, { 255, 240,   1 }, { 160, 194,  56 }, { 107, 182, 187 },
@@ -358,20 +358,10 @@ void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 
 	for (int i = 2; i < 256; ++i)
 	{
-		if (i < 18)
-		{
-			m_imgMskCol[4 * i + 0] = sproutColor[i-2][0];
-			m_imgMskCol[4 * i + 1] = sproutColor[i-2][1];
-			m_imgMskCol[4 * i + 2] = sproutColor[i-2][2];
-			m_imgMskCol[4 * i + 3] = 255;
-		}
-		else 
-		{
-			m_imgMskCol[4 * i + 0] = 250;
-			m_imgMskCol[4 * i + 1] = 250;
-			m_imgMskCol[4 * i + 2] = 250;
-			m_imgMskCol[4 * i + 3] = 255;
-		}
+		m_imgMskCol[4 * i + 0] = sproutColor[(i-2) % 16][0];
+		m_imgMskCol[4 * i + 1] = sproutColor[(i-2) % 16][1];
+		m_imgMskCol[4 * i + 2] = sproutColor[(i-2) % 16][2];
+		m_imgMskCol[4 * i + 3] = 255;
 	}
 
 
@@ -386,60 +376,218 @@ void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 
 
 
-
-void ImageManager::loadMaskAtInitFrame(CString fname)
+void t_get4DFilePaths_mask(CString topDirPath, vector<CString> &fNames)
 {
-	FILE* fp = fopen(fname, "rb");
-	
-	//save mask image
-	int version, W,H,D;
-	fread(&version, sizeof(int), 1, fp);
-	fread(&W      , sizeof(int), 1, fp);
-	fread(&H      , sizeof(int), 1, fp);
-	fread(&D      , sizeof(int), 1, fp);
 
-	if(W != m_img4D[0]->W || H != m_img4D[0]->H || D != m_img4D[0]->D )
+	CString path = topDirPath;
+	if (path.Right(1) != "\\") path += "\\";
+	path += "*.msk";
+
+	CFileFind cFind;
+	BOOL bContinue = cFind.FindFile(path);
+
+	while (bContinue)
 	{
-		AfxMessageBox( "strange volume size\n");
-		fclose( fp );
-		return;
+		bContinue = cFind.FindNextFile();
+		fNames.push_back(cFind.GetFilePath());
 	}
 
-	fread( m_mask4D[0], sizeof(byte), W * H * D, fp);
-
-	//m_volMsk.flipVolumeInZ();
-	m_volMask.SetValue(m_mask4D[0]);
-
-
-	int maskN;
-	fread(&maskN, sizeof(int), 1, fp);
-
-
-	for (int i=0; i < maskN; ++i)
-	{
-		int lock, nLen;
-		int col[3];
-		double alpha;
-		fread(&alpha, sizeof(double), 1, fp);
-		fread(col   , sizeof(int   ), 3, fp);
-		fread(&lock , sizeof(int   ), 1, fp);
-		fread(&nLen , sizeof(int   ), 1, fp);
-
-		char *name = new char[nLen + 1];
-		fread(name, sizeof(char), nLen + 1, fp);
-
-		fprintf(stderr, "%d %s\n", nLen, name);
-
-		m_imgMskCol[4*i+0] = col[0];
-		m_imgMskCol[4*i+1] = col[1];
-		m_imgMskCol[4*i+2] = col[2];
-		m_imgMskCol[4*i+3] = alpha;
-		//m_maskData.push_back( MaskData(string(name), EVec3i(col[0],col[1],col[2]), alpha, 0, lock?true:false) );
-
-		delete[] name; 
-	}
-	fclose(fp);
+	fprintf(stderr, "%s  -- %d\n", path.GetString(), (int)fNames.size());
 }
+
+
+
+bool t_open4DImg_mask(
+	const vector<CString>       &fNames, 
+	const vector<TVolumeInt16*> &img4D, 
+	      vector<byte*>         &mask4D, 
+	      vector<int>           &correctMask, 
+	      OglImage3D            &volMask
+) {
+	const int frameN = (int)fNames.size();
+	int startI, endI;
+
+	DlgLoadFrameIdx dlg;
+	if (dlg.myDoModal(frameN, startI, endI) != IDOK || startI >= endI) exit(0);
+
+
+	for (int idx = startI; idx <= endI; ++idx)
+	{
+
+		CString fname = fNames[idx];
+		
+		fprintf(stderr, "load  %s     \n", fname);
+
+		FILE *fp = fopen(fname, "rb");
+		if (fp == 0) continue;
+		
+		string file_name = static_cast<string>(fname);
+		int fnLen = file_name.size();
+		for (int i = 1; i <= 4; i++)
+		{
+			file_name.erase(file_name.begin() + fnLen - i);
+		}
+		fnLen = file_name.size();
+		for (int i = 0; i < fnLen - 2; i++)
+		{
+			file_name.erase(file_name.begin());
+		}
+
+		int index = atoi(file_name.c_str());
+
+		if (index >= mask4D.size())continue;
+
+		correctMask.push_back(index);
+
+		int version, W, H, D;
+		fread(&version, sizeof(int), 1, fp);
+		fread(&W, sizeof(int), 1, fp);
+		fread(&H, sizeof(int), 1, fp);
+		fread(&D, sizeof(int), 1, fp);
+
+		//if (W != m_img4D[0]->W || H != m_img4D[0]->H || D != m_img4D[0]->D)
+		//{
+		//	AfxMessageBox("strange volume size\n");
+		//	fclose(fp);
+		//	return;
+		//}
+
+		
+		//if (fread(mask4D[index], sizeof(byte), W*H*D, fp) != W*H*D)
+		//{
+		//	fclose(fp);
+		//	delete img4D.back();
+		//	img4D.pop_back();
+		//}
+
+		fread(mask4D[index], sizeof(byte), W*H*D, fp);
+
+		//m_volMsk.flipVolumeInZ();
+		volMask.SetValue(mask4D[index]);
+
+
+		int maskN;
+		fread(&maskN, sizeof(int), 1, fp);
+
+
+		for (int i = 0; i < maskN; ++i)
+		{
+			int lock, nLen;
+			int col[3];
+			double alpha;
+			fread(&alpha, sizeof(double), 1, fp);
+			fread(col, sizeof(int), 3, fp);
+			fread(&lock, sizeof(int), 1, fp);
+			fread(&nLen, sizeof(int), 1, fp);
+
+			char *name = new char[nLen + 1];
+			fread(name, sizeof(char), nLen + 1, fp);
+
+			//fprintf(stderr, "%d %s\n", nLen, name);
+
+			delete[] name;
+		}
+
+		fclose(fp);
+		fprintf(stderr, "Input index %d     \n", index);
+	}
+	return true;
+}
+
+void ImageManager::loadMask(CString topDirPath)
+{
+
+	//load Mask
+	if (topDirPath.GetLength() == 0) return;
+
+	vector<CString> fNames;
+	t_get4DFilePaths_mask(topDirPath, fNames);
+	t_open4DImg_mask(fNames, m_img4D, m_mask4D, m_correctMask, m_volMask);
+
+}
+
+//void ImageManager::loadMask(CString topDirPath)
+//{
+//
+//	//load Mask
+//	if (topDirPath.GetLength() == 0) return;
+//	
+//	vector<CString> fNames;
+//	t_get4DFilePaths_mask(topDirPath, fNames);
+//	t_open4DImg_traw3d(fNames, m_img4D);
+//	
+//
+//	if (m_img4D.size() == 0 || m_img4D[0]->W == 0 || m_img4D[0]->H == 0 || m_img4D[0]->D == 0) exit(0);
+//
+//
+//	FILE* fp = fopen(fname, "rb");
+//	string file_name = static_cast<string>(fname);
+//	int fnLen = file_name.size();
+//	for (int i = 1; i <= 4; i++)
+//	{		
+//		file_name.erase(file_name.begin() + fnLen - i);
+//	}
+//	fnLen = file_name.size();
+//	for (int i = 0; i < fnLen - 2; i++)
+//	{
+//		file_name.erase(file_name.begin());
+//	}
+//
+//	int index = atoi(file_name.c_str());
+//
+//	correctMask.push_back(index);
+//
+//	int version, W,H,D;
+//	fread(&version, sizeof(int), 1, fp);
+//	fread(&W      , sizeof(int), 1, fp);
+//	fread(&H      , sizeof(int), 1, fp);
+//	fread(&D      , sizeof(int), 1, fp);
+//
+//	if(W != m_img4D[0]->W || H != m_img4D[0]->H || D != m_img4D[0]->D )
+//	{
+//		AfxMessageBox( "strange volume size\n");
+//		fclose( fp );
+//		return;
+//	}
+//
+//	fread( m_mask4D[index], sizeof(byte), W * H * D, fp);
+//
+//	//m_volMsk.flipVolumeInZ();
+//	m_volMask.SetValue(m_mask4D[index]);
+//
+//
+//	int maskN;
+//	fread(&maskN, sizeof(int), 1, fp);
+//
+//
+//	for (int i=0; i < maskN; ++i)
+//	{
+//		int lock, nLen;
+//		int col[3];
+//		double alpha;
+//		fread(&alpha, sizeof(double), 1, fp);
+//		fread(col   , sizeof(int   ), 3, fp);
+//		fread(&lock , sizeof(int   ), 1, fp);
+//		fread(&nLen , sizeof(int   ), 1, fp);
+//
+//		char *name = new char[nLen + 1];
+//		fread(name, sizeof(char), nLen + 1, fp);
+//		
+//		
+//		fprintf(stderr, "%d %s\n", nLen, name);
+//
+//		m_imgMskCol[4*i+0] = col[0];
+//		m_imgMskCol[4*i+1] = col[1];
+//		m_imgMskCol[4*i+2] = col[2];
+//		m_imgMskCol[4*i+3] = alpha;
+//		//m_maskData.push_back( MaskData(string(name), EVec3i(col[0],col[1],col[2]), alpha, 0, lock?true:false) );
+//
+//		delete[] name; 
+//	}
+//	fclose(fp);
+//	fprintf(stderr, "load  %s     \n", file_name.c_str());
+//	fprintf(stderr, "index %d     \n", index);
+//}
 
 
 
@@ -757,11 +905,11 @@ void ImageManager::updateHistogram()
 }
 
 
-inline int pointID(const EVec3i point, const int W, const int H) {
+inline int t_pointID(const EVec3i point, const int W, const int H) {
 	return point[0] + point[1] * W + point[2] * W*H;
 }
 
-bool isOutsideVolume(const EVec3i pos, const EVec3i vol) {
+bool t_isOutsideVolume(const EVec3i pos, const EVec3i vol) {
 	for (int i = 0; i < 3; i++)
 	{
 		if (pos[i] < 0 || pos[i] >= vol[i]) return true;
@@ -769,7 +917,7 @@ bool isOutsideVolume(const EVec3i pos, const EVec3i vol) {
 	return false;
 }
 
-void dilation(const int W, const int H, const int D, byte *vol) {
+void t_dilation(const int W, const int H, const int D, byte *vol) {
 
 	byte *tmp = new byte[W*H*D];
 	memcpy(tmp, vol, sizeof(byte)*W*H*D);
@@ -790,8 +938,8 @@ void dilation(const int W, const int H, const int D, byte *vol) {
 		points[5] << x + 1, y, z;
 
 		for (int i = 0; i < 6; i++) {
-			if (isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
-			if (tmp[pointID(points[i], W, H)]) vol[x + y*W + z*W*H] = 1;
+			if (t_isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
+			if (tmp[t_pointID(points[i], W, H)]) vol[x + y*W + z*W*H] = 1;
 		}
 	}
 	
@@ -799,7 +947,7 @@ void dilation(const int W, const int H, const int D, byte *vol) {
 }
 
 
-void erosion(const int W, const int H, const int D, byte *vol) {
+void t_erosion(const int W, const int H, const int D, byte *vol) {
 
 	byte *tmp = new byte[W*H*D];
 	memcpy(tmp, vol, sizeof(byte)*W*H*D);
@@ -820,21 +968,21 @@ void erosion(const int W, const int H, const int D, byte *vol) {
 		points[5] << x + 1, y, z;
 
 		for (int i = 0; i < 6; i++) {
-			if (isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
-			if (tmp[pointID(points[i], W, H)] == 0) vol[x + y*W + z*W*H] = 0;
+			if (t_isOutsideVolume(points[i], EVec3i(W, H, D)))continue;
+			if (tmp[t_pointID(points[i], W, H)] == 0) vol[x + y*W + z*W*H] = 0;
 		}
 	}
 	delete[] tmp;
 }
 
 
-bool isSproutID(int id) {
+bool t_isSproutID(int id) {
 	if (id < 2)  return false;
 	if (id > 17) return false;
 	return true;
 }
 
-void IDSet(
+void t_IDSet(
 	const int W,
 	const int H,
 	const int D,
@@ -847,7 +995,7 @@ void IDSet(
 	for (int y = 0; y < H; y++)
 	for (int x = 0; x < W; x++)
 	{
-		if (isSproutID(srcMask[x + y*W + z*W*H]))
+		if (t_isSproutID(srcMask[x + y*W + z*W*H]))
 		{
 			searchPoints.push_back(EVec3i(x, y, z));
 		}
@@ -861,7 +1009,7 @@ void IDSet(
 		
 		if (srcBin[x + y*W + z*W*H] == 1)
 		{
-			if (isSproutID(srcMask[x + y*W + z*W*H])) {
+			if (t_isSproutID(srcMask[x + y*W + z*W*H])) {
 				dstMask[x + y*W + z*W*H] = srcMask[x + y * W + z * W*H];
 				continue;
 			}
@@ -947,13 +1095,23 @@ void ImageManager::updateMask()
 
 	fprintf(stderr, "Stage Set");
 
-	dilation(W, H, D, binCage); // cage dilation
+	t_dilation(W, H, D, binCage); // cage dilation
 
 	byte *binVol = new byte[WHD]; // I'
 
 	for (int frame = 1; frame < (int)m_img4D.size(); ++frame)
 	{
-		
+		bool flag = false;
+		for (int i = 0; i < m_correctMask.size(); i++) 
+		{
+			if (m_correctMask[i] == frame)
+			{
+				flag = true;
+				break;
+			}
+		}
+		if (flag) continue;
+
 		// 二値化してステージや水と豆苗のみにする　(I' ) 
 		// ステージ部分を切り出す（ I' - Is = I'' ）
 		for (int i = 0; i < WHD; ++i)
@@ -975,14 +1133,14 @@ void ImageManager::updateMask()
 
 		fprintf(stderr, "\r%3d / %3d Opening      ", frame, (int)m_img4D.size() - 1);
 
-		for (int i = 0; i < openingTime; i++) erosion (W, H, D, binVol);
-		for (int i = 0; i < openingTime; i++) dilation(W, H, D, binVol);
+		for (int i = 0; i < openingTime; i++) t_erosion (W, H, D, binVol);
+		for (int i = 0; i < openingTime; i++) t_dilation(W, H, D, binVol);
 		
 		
 		// volの独立領域にIDを設定。前フレームのIDを利用。
 		fprintf(stderr, "\r%3d / %3d Label Set       ", frame, (int)m_img4D.size() - 1);
 
-		IDSet(W, H, D, binVol, m_mask4D[frame-1], m_mask4D[frame]);
+		t_IDSet(W, H, D, binVol, m_mask4D[frame-1], m_mask4D[frame]);
 
 
 		fprintf(stderr, "\r%3d / %3d finish       ", frame, (int)m_img4D.size() - 1);
