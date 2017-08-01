@@ -408,7 +408,7 @@ bool t_open4DImg_mask(
 	int startI, endI;
 
 	DlgLoadFrameIdx dlg;
-	if (dlg.myDoModal(frameN, startI, endI) != IDOK || startI >= endI) exit(0);
+	if (dlg.myDoModal(frameN, startI, endI) != IDOK || startI > endI) exit(0);
 
 
 	for (int idx = startI; idx <= endI; ++idx)
