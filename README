@@ -49,3 +49,14 @@ This software uses the following 3rd party libraries.
 (*) DCMTK : Copyright (C) 1994-2011, OFFIS e.V.
 	released under the BSD 3-Clause License.
 	Visit http://support.dcmtk.org/docs/file_copyright.html
+
+
+
+---------------------------------------------------------------------
+
+Threshold Number
+(*)Threshold CT : -20000
+
+(*)Threshold Height : -330
+
+Import Mask Frame Number : 0, 46, 69, 71, 72, 73

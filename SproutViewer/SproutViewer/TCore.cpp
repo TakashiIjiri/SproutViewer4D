@@ -20,7 +20,7 @@ TCore::TCore() :
 	m_shaderVol    ("shader/volVtx.glsl", "shader/volFlg.glsl"    ), m_shaderCrs    ("shader/crssecVtx.glsl", "shader/crssecFlg.glsl"    ),
 	m_shaderVolMask("shader/volVtx.glsl", "shader/volFlg_Msk.glsl"), m_shaderCrsMask("shader/crssecVtx.glsl", "shader/crssecFlg_Msk.glsl")
 {
-	m_bL = m_bR = m_bM = false;
+	m_bL = m_bR = m_bM =  false;
 }
 
 
@@ -29,8 +29,20 @@ TCore::~TCore()
 }
 
 
-void TCore::KeyDown   ( UINT nChar, UINT nRepCnt, UINT nFlags, OglForMFC &ogl){}
-void TCore::KeyUp     ( UINT nChar, UINT nRepCnt, UINT nFlags, OglForMFC &ogl){}
+void TCore::KeyDown   ( UINT nChar, UINT nRepCnt, UINT nFlags, OglForMFC &ogl){
+	if (nChar == VK_RIGHT) {
+		ogl.KeyDown_RightRot();
+	} else if (nChar == VK_LEFT) {
+		ogl.KeyDown_LeftRot();
+	} else if (nChar == VK_UP) {
+		ogl.KeyDown_UpRot();
+	} else if (nChar == VK_DOWN) {
+		ogl.KeyDown_DownRot();
+	}
+	ogl.Redraw();
+}
+void TCore::KeyUp     ( UINT nChar, UINT nRepCnt, UINT nFlags, OglForMFC &ogl){
+}
 
 
 void TCore::LBtnDown  ( CPoint p, OglForMFC &ogl )
