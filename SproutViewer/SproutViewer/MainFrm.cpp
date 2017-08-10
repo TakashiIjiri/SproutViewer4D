@@ -115,10 +115,13 @@ void CMainFrame::OnFileLoad4dctTraw()
 
 void CMainFrame::OnFileLoadmask()
 {
-	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY, "mask data (*.msk)|*.msk||");
-	if (dlg.DoModal() != IDOK) return;
+	//CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY, "mask data (*.msk)|*.msk||");
+	//if (dlg.DoModal() != IDOK) return;
 
-	ImageManager::getInst()->loadMaskAtInitFrame(dlg.GetPathName());
+	//ImageManager::getInst()->loadMaskAtInitFrame(dlg.GetPathName());
+
+	CSproutViewerView::getInst()->loadMask();
+
 }
 
 
