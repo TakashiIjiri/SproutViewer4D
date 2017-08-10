@@ -83,16 +83,20 @@ class OglForMFC
 	EVec4f m_bgColor;
 
 	enum {
-		BTN_NON, BTN_TRANS, BTN_ZOOM, BTN_ROT
+		BTN_NON, 
+		BTN_TRANS, 
+		BTN_ZOOM,
+		BTN_ROT
 	} m_btnState;
 
 
 public:
 	OglForMFC() 
 	{
-		m_camP = EVec3f(0, 0, 10);
-		m_camC = EVec3f(0, 0, 0 );
-		m_camU = EVec3f(0, 1, 0 );
+		//0.204
+		m_camP = EVec3f(773.0f*0.204 / 2.0f, 773.0f*0.204 / 2.0f+10, 400.0f*0.204 / 2.0f-5);
+		m_camC = EVec3f(773.0f*0.204 / 2.0f, 773.0f*0.204 / 2.0f, 400.0f*0.204 / 2.0f);
+		m_camU = EVec3f(0, 0, -1 );
 		
 		m_pWnd = 0;
 		m_pDC  = 0;
@@ -203,12 +207,40 @@ public:
 		m_pWnd->SetCapture();
 	}
 
+
+
+	void KeyDown_RightRot()
+	{
+		t_rotation(-M_PI/80, 0);
+	}
+	void KeyDown_LeftRot()
+	{
+		t_rotation(M_PI / 80, 0);
+	}
+	void KeyDown_UpRot()
+	{
+		t_rotation(0, M_PI / 80);
+	}
+	void KeyDown_DownRot()
+	{
+		t_rotation(0, -M_PI / 80);
+	}
+	
+	
+	
 	void BtnUp() 
 	{
 		m_btnState = BTN_NON;
 		ReleaseCapture();
 	}
 
+	void t_rotation(float theta, float phi) {
+		EVec3f axis = ((m_camC - m_camP).cross(m_camU)).normalized();  // (camP->camC)とcamUの外積を正規化
+		Eigen::AngleAxisf rotTheta = Eigen::AngleAxisf(theta, m_camU); // m_camUを軸にtheta度反時計回り
+		Eigen::AngleAxisf rotPhi   = Eigen::AngleAxisf(phi, axis); // axis  を軸にphi  度反時計回り
+		m_camU = rotPhi * rotTheta * m_camU;
+		m_camP = rotPhi * rotTheta * (m_camP - m_camC) + m_camC;
+	}
 
 	void MouseMove(const CPoint &p)
 	{
@@ -217,14 +249,14 @@ public:
 		float dX = (float) (p.x - m_mousePt[0]);
 		float dY = (float) (p.y - m_mousePt[1]);
 
-		if (m_btnState == BTN_ROT)
+		if(m_btnState == BTN_ROT)
 		{
 			float theta = -dX / 200.0f;
 			float phi   = -dY / 200.0f;
 
-			EVec3f axis = ((m_camC - m_camP).cross(m_camU)).normalized();
-			Eigen::AngleAxisf rotTheta = Eigen::AngleAxisf(theta, m_camU);
-			Eigen::AngleAxisf rotPhi   = Eigen::AngleAxisf(phi  , axis  );
+			EVec3f axis = ((m_camC - m_camP).cross(m_camU)).normalized();  // (camP->camC)とcamUの外積を正規化
+			Eigen::AngleAxisf rotTheta = Eigen::AngleAxisf(theta, m_camU); // m_camUを軸にtheta度反時計回り
+			Eigen::AngleAxisf rotPhi   = Eigen::AngleAxisf(phi  , axis  ); // axis  を軸にphi  度反時計回り
 			m_camU = rotPhi * rotTheta * m_camU;
 			m_camP = rotPhi * rotTheta * (m_camP - m_camC) + m_camC;
 		}

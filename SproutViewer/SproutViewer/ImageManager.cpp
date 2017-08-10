@@ -89,7 +89,7 @@ bool t_open4DImg( const vector< vector<CString> > &fNames, vector< TVolumeInt16*
 	int startI, endI;
 
 	DlgLoadFrameIdx dlg;
-	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI >= endI ) exit(0);
+	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI >= endI ) return false;
 
 
     for( int idx = startI; idx <= endI; ++idx )
@@ -167,7 +167,7 @@ bool t_open4DImg_traw3d( const vector<CString> &fNames, vector<TVolumeInt16*> &i
 	int startI, endI;
 
 	DlgLoadFrameIdx dlg;
-	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI >= endI ) exit(0);
+	if( dlg.myDoModal( frameN, startI, endI ) != IDOK || startI > endI ) return false;
 
 
     for( int idx = startI; idx <= endI; ++idx )
@@ -349,10 +349,10 @@ void ImageManager::load4DCT(CString topDirPath, int flg_DCMs_or_traw)
 	m_imgMskCol[4 + 3] = 3;
 
 	int sproutColor[16][3] = { 
-		{ 203,  83, 147 }, { 255, 240,   1 }, { 160, 194,  56 }, { 107, 182, 187 },
-		{   0, 165, 231 }, { 205,  86,  56 }, {   1, 104, 179 }, { 242, 207,   1 },
-		{   0, 152,  75 }, { 214, 133, 176 }, { 215, 129,  20 }, { 165,  99, 160 },
-		{   0, 157, 198 }, { 196, 200,  41 }, { 149,   0, 126 }, { 108, 120,  34 }
+		{ 203,  83, 147 }, { 255,  10,   1 }, { 160, 194, 255 }, { 107,  10, 187 },
+		{   0, 165, 231 }, { 205,  86,  56 }, {   1, 210, 179 }, { 242, 207,   1 },
+		{ 100, 152,  75 }, { 250, 255, 255 }, { 215, 129,  20 }, { 255 ,99 ,10 },
+		{   0 ,10 ,100 }, { 100, 200,  41 }, { 149,   0, 126 }, { 108, 120,  34 }
 	};
 
 
@@ -408,7 +408,7 @@ bool t_open4DImg_mask(
 	int startI, endI;
 
 	DlgLoadFrameIdx dlg;
-	if (dlg.myDoModal(frameN, startI, endI) != IDOK || startI > endI) exit(0);
+	if (dlg.myDoModal(frameN, startI, endI) != IDOK || startI > endI) return false;
 
 
 	for (int idx = startI; idx <= endI; ++idx)
@@ -1145,7 +1145,9 @@ void ImageManager::updateMask()
 
 		fprintf(stderr, "\r%3d / %3d finish       ", frame, (int)m_img4D.size() - 1);
 		
-		string fname("objectMask" + to_string(frame));
+		string fname;
+		if (frame >= 10) fname = to_string(frame);
+		else             fname = "0" + to_string(frame);
 		saveMask(W, H, D, m_mask4D[frame], 18, fname);
 	}
 	fprintf(stderr, "\n");
